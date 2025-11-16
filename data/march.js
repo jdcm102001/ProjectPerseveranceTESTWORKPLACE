@@ -1,4 +1,4 @@
-const MARCH_DATA = {
+window.MARCH_DATA = {
   "TURN": 3,
   "MONTH": "March",
   "MARKET_DEPTH": {
