@@ -3,6 +3,7 @@ import { redistributePanels, applyPanelLayout } from './panel-resize.js';
 import { setupTabDropZones, switchTab, closeWidget, handleTabDragStart, handleTabDragEnd } from './tab-drag.js';
 import { MarketsWidget } from '../widgets/markets-widget.js';
 import { PositionsWidget } from '../widgets/positions-widget.js';
+import { FuturesWidget } from '../widgets/futures-widget.js';
 
 /* ==========================================
    WIDGET DRAG & DROP HANDLERS
@@ -246,6 +247,38 @@ async function createWidgetContent(widgetName, isActive) {
 
         setTimeout(() => {
             PositionsWidget.init();
+        }, 100);
+
+        return content;
+    }
+
+    if (widgetName === 'Futures') {
+        content.innerHTML = `
+            <div class="futures-widget-content">
+                <!-- Summary Stats -->
+                <div class="match-stats" style="margin-bottom: 20px;">
+                    <div class="match-stat">
+                        <div class="match-stat-label">Unrealized P&L</div>
+                        <div class="match-stat-value" id="futuresUnrealizedPL">$0</div>
+                    </div>
+                    <div class="match-stat">
+                        <div class="match-stat-label">Margin Used</div>
+                        <div class="match-stat-value" id="futuresMarginUsed">$0 / $100K</div>
+                    </div>
+                </div>
+
+                <!-- Available Contracts -->
+                <div class="section-title">📊 Available Contracts</div>
+                <div id="futuresAvailableTable"></div>
+
+                <!-- Open Positions -->
+                <div class="section-title" style="margin-top: 30px;">📈 Open Positions</div>
+                <div id="futuresPositionsTable"></div>
+            </div>
+        `;
+
+        setTimeout(() => {
+            FuturesWidget.render();
         }, 100);
 
         return content;
