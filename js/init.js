@@ -79,6 +79,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 closeWidget(panel, widget);
             }
         }
+
+        // Handle trade button clicks (workaround for onclick not firing)
+        if (e.target.classList.contains('trade-btn') && e.target.onclick) {
+            e.target.onclick(e);
+        }
     });
 
     // Load saved theme
