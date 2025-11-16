@@ -1,3 +1,6 @@
+import { GAME_STATE } from '../core/game-state.js';
+import { TradePanel } from '../core/trade-panel.js';
+
 const MarketsWidget = {
     init() {
         if (!GAME_STATE.currentMonthData) {

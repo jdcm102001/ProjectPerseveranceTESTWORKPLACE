@@ -1,3 +1,6 @@
+import { GAME_STATE } from './game-state.js';
+import { PositionsWidget } from '../widgets/positions-widget.js';
+
 function advanceTurn() {
     if (!confirm(`Advance to next turn?\n\nThis will:\n- Charge interest on LOC: $${Math.round(GAME_STATE.locInterestNextMonth).toLocaleString('en-US')}\n- Move to ${GAME_STATE.currentTurn === 1 ? 'February' : GAME_STATE.currentTurn === 2 ? 'March' : GAME_STATE.currentTurn === 3 ? 'April' : 'May'}\n- Reset monthly limits\n- Update position statuses`)) {
         return;
