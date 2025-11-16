@@ -1,5 +1,6 @@
 import { GAME_STATE } from './game-state.js';
 import { PositionsWidget } from '../widgets/positions-widget.js';
+import { MarketsWidget } from '../widgets/markets-widget.js';
 
 const TradePanel = {
     currentTrade: {},
@@ -300,15 +301,9 @@ const TradePanel = {
         alert(`✅ Purchase Executed!\n\n${tonnage} MT from ${supplier}\nTotal Cost: $${Math.round(totalCost).toLocaleString('en-US')}\nPaid from Funds: $${Math.round(position.paidFromFunds).toLocaleString('en-US')}\nPaid from LOC: $${Math.round(position.paidFromLOC).toLocaleString('en-US')}\n\nTravel Time: ${position.travelTimeDays} days\nArrival: ${arrivalMonth}\n\nRemaining this month: ${purchaseCheck.remaining - tonnage}MT`);
         this.close();
 
-        // Refresh markets widget
-        if (typeof MarketsWidget !== 'undefined') {
-            MarketsWidget.init();
-        }
-
-        // Refresh positions widget
-        if (typeof PositionsWidget !== 'undefined') {
-            PositionsWidget.init();
-        }
+        // Refresh widgets
+        MarketsWidget.init();
+        PositionsWidget.init();
     },
 
     executeSell() {
@@ -351,15 +346,9 @@ const TradePanel = {
         alert(`✅ Sale Executed!\n\n${tonnage} MT to ${region}\nRevenue: $${Math.round(totalRevenue).toLocaleString('en-US')}\nProfit: $${Math.round(profit).toLocaleString('en-US')}\n\nRemaining this month: ${saleCheck.remaining - tonnage}MT`);
         this.close();
 
-        // Refresh markets widget
-        if (typeof MarketsWidget !== 'undefined') {
-            MarketsWidget.init();
-        }
-
-        // Refresh positions widget
-        if (typeof PositionsWidget !== 'undefined') {
-            PositionsWidget.init();
-        }
+        // Refresh widgets
+        MarketsWidget.init();
+        PositionsWidget.init();
     },
 
     getMonthName(turn) {

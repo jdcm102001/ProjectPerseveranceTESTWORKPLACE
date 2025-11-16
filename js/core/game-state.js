@@ -23,7 +23,12 @@ const GAME_STATE = {
     },
 
     init() {
-        this.currentMonthData = JANUARY_DATA;
+        // Access month data from window object (loaded from script tags)
+        this.currentMonthData = window.JANUARY_DATA;
+        if (!this.currentMonthData) {
+            console.error('JANUARY_DATA not loaded! Check data files.');
+            return;
+        }
         this.updateHeader();
     },
 
