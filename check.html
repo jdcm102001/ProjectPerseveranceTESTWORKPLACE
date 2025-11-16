@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Quick Check</title>
+    <style>
+        body { background: #1a1a1a; color: #fff; font-family: monospace; padding: 20px; }
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+        pre { background: #2a2a2a; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Diagnostic Check</h1>
+    <div id="output"></div>
+
+    <script src="data/january.js"></script>
+    <script>
+        const output = document.getElementById('output');
+
+        function log(msg, success = true) {
+            const p = document.createElement('pre');
+            p.className = success ? 'success' : 'error';
+            p.textContent = msg;
+            output.appendChild(p);
+        }
+
+        // Check 1: Data loaded?
+        if (typeof JANUARY_DATA !== 'undefined') {
+            log('✅ JANUARY_DATA loaded: ' + JANUARY_DATA.MONTH);
+        } else {
+            log('❌ JANUARY_DATA NOT loaded', false);
+        }
+
+        // Check 2: Can we access it via window?
+        if (window.JANUARY_DATA) {
+            log('✅ window.JANUARY_DATA accessible');
+        } else {
+            log('❌ window.JANUARY_DATA NOT accessible', false);
+        }
+
+        // Wait for page to load then try to import module
+        setTimeout(async () => {
+            try {
+                const module = await import('./js/core/game-state.js');
+                log('✅ Successfully imported game-state.js module');
+                log('✅ Module exports: ' + Object.keys(module).join(', '));
+            } catch (err) {
+                log('❌ ERROR importing game-state.js: ' + err.message, false);
+                log('❌ Full error: ' + err.stack, false);
+            }
+        }, 100);
+    </script>
+</body>
+</html>
