@@ -8,6 +8,15 @@ const FuturesWidget = {
         this.currentView = 'LME';
         this.render();
         this.renderGraph();
+        this.makePanelDraggable();
+    },
+
+    // Store trade panel state
+    tradePanel: {
+        exchange: null,
+        contract: null,
+        direction: null,
+        price: 0
     },
 
     setView(view) {
@@ -297,10 +306,11 @@ const FuturesWidget = {
                         <th>CONTRACT</th>
                         <th>DIRECTION</th>
                         <th>CONTRACTS</th>
-                        <th>TONNAGE</th>
                         <th>ENTRY</th>
                         <th>CURRENT</th>
                         <th>P&L</th>
+                        <th>MARGIN</th>
+                        <th>EXPIRY</th>
                         <th>ACTIONS</th>
                     </tr>
                 </thead>
@@ -309,15 +319,52 @@ const FuturesWidget = {
                         const plClass = pos.unrealizedPL >= 0 ? 'price-positive' : 'price-negative';
                         const directionBadge = pos.direction === 'LONG' ? 'position-badge long' : 'position-badge short';
 
+                        // Calculate expiry countdown
+                        const turnsUntilExpiry = pos.expiryTurn - GAME_STATE.currentTurn;
+                        let expiryClass = '';
+                        let expiryIcon = '';
+                        if (turnsUntilExpiry <= 1) {
+                            expiryClass = 'expiry-critical';
+                            expiryIcon = '🔴';
+                        } else if (turnsUntilExpiry <= 3) {
+                            expiryClass = 'expiry-warning';
+                            expiryIcon = '🟡';
+                        } else {
+                            expiryClass = 'expiry-safe';
+                            expiryIcon = '🟢';
+                        }
+
+                        // Calculate margin health
+                        const marginHealth = (pos.marginBalance / pos.initialMargin) * 100;
+                        let marginClass = '';
+                        let marginIcon = '';
+                        if (marginHealth < 80) {
+                            marginClass = 'margin-critical';
+                            marginIcon = '⚠️';
+                        } else if (marginHealth < 100) {
+                            marginClass = 'margin-warning';
+                            marginIcon = '⚡';
+                        } else {
+                            marginClass = 'margin-healthy';
+                            marginIcon = '✅';
+                        }
+
                         return `
                             <tr>
                                 <td><span class="exchange-badge">${pos.exchange}</span> <strong>${pos.contract}</strong></td>
                                 <td><span class="${directionBadge}">${pos.direction}</span></td>
-                                <td>${pos.numContracts} × ${pos.contractSize} MT</td>
-                                <td>${pos.tonnage} MT</td>
+                                <td>${pos.numContracts} contract${pos.numContracts > 1 ? 's' : ''}<br><span style="font-size: 11px; color: #888;">(${pos.tonnage.toFixed(2)} MT)</span></td>
                                 <td>$${Math.round(pos.entryPrice).toLocaleString('en-US')}</td>
                                 <td>$${Math.round(pos.currentPrice).toLocaleString('en-US')}</td>
                                 <td class="${plClass}">${pos.unrealizedPL >= 0 ? '+' : ''}$${Math.round(pos.unrealizedPL).toLocaleString('en-US')}</td>
+                                <td class="${marginClass}">
+                                    ${marginIcon} $${Math.round(pos.marginBalance).toLocaleString('en-US')}<br>
+                                    <span style="font-size: 10px; color: #888;">${marginHealth.toFixed(0)}% health</span>
+                                </td>
+                                <td class="${expiryClass}">
+                                    ${expiryIcon} ${turnsUntilExpiry} turn${turnsUntilExpiry > 1 ? 's' : ''}<br>
+                                    <span style="font-size: 10px; color: #888;">Turn ${pos.expiryTurn}</span>
+                                </td>
                                 <td>
                                     <button class="trade-btn" onclick="FuturesWidget.closePosition(${pos.id})">CLOSE</button>
                                 </td>
@@ -344,25 +391,182 @@ const FuturesWidget = {
         }
 
         if (marginEl) {
-            marginEl.textContent = `$${Math.round(GAME_STATE.futuresMarginUsed).toLocaleString('en-US')} / $${Math.round(GAME_STATE.futuresMarginLimit).toLocaleString('en-US')}`;
+            marginEl.textContent = `$${Math.round(GAME_STATE.futuresMarginPosted).toLocaleString('en-US')} / $${Math.round(GAME_STATE.futuresMarginLimit).toLocaleString('en-US')}`;
         }
     },
 
     openPosition(exchange, contract, direction) {
-        const tonnage = prompt(`Enter tonnage for ${direction} ${exchange} ${contract}:`, '10');
+        // Store trade details
+        this.tradePanel.exchange = exchange;
+        this.tradePanel.contract = contract;
+        this.tradePanel.direction = direction;
 
-        if (!tonnage || tonnage <= 0) {
+        const monthData = GAME_STATE.currentMonthData;
+        const pricing = exchange === 'LME' ? monthData.PRICING.LME : monthData.PRICING.COMEX;
+
+        // Get price for this contract
+        let price;
+        if (contract === 'M+1') {
+            price = pricing.FUTURES_1M;
+        } else if (contract === 'M+3') {
+            price = pricing.FUTURES_3M;
+        } else if (contract === 'M+12') {
+            price = pricing.FUTURES_12M;
+        }
+
+        this.tradePanel.price = price;
+
+        // Get spec for contract size
+        const spec = GAME_STATE.FUTURES_SPECS[exchange];
+
+        // Populate panel
+        document.getElementById('futuresExchangeDisplay').textContent = exchange;
+        document.getElementById('futuresContractDisplay').textContent = contract;
+        document.getElementById('futuresDirectionDisplay').textContent = direction;
+        document.getElementById('futuresDirectionDisplay').style.color = direction === 'LONG' ? '#10b981' : '#ef4444';
+        document.getElementById('futuresCurrentPrice').textContent = `$${Math.round(price).toLocaleString('en-US')}/MT`;
+        document.getElementById('futuresContractSize').textContent = `${spec.contractSize} MT/contract`;
+
+        // Calculate max contracts based on available margin
+        const availableMargin = GAME_STATE.futuresMarginLimit - GAME_STATE.futuresMarginPosted;
+        const maxContracts = Math.floor(availableMargin / spec.initialMargin);
+        document.getElementById('futuresMaxContracts').textContent = maxContracts;
+        document.getElementById('futuresNumContracts').max = maxContracts;
+        document.getElementById('futuresNumContracts').value = Math.min(1, maxContracts);
+
+        // Update expiry info
+        let expiryTurns;
+        if (contract === 'M+1') expiryTurns = 1;
+        else if (contract === 'M+3') expiryTurns = 3;
+        else if (contract === 'M+12') expiryTurns = 12;
+        document.getElementById('futuresExpiryInfo').textContent = `This ${contract} contract expires in ${expiryTurns} turn${expiryTurns > 1 ? 's' : ''}`;
+
+        // Set panel title color
+        const panelHeader = document.getElementById('futuresPanelHeader');
+        if (direction === 'LONG') {
+            panelHeader.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        } else {
+            panelHeader.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        }
+
+        // Update calculations
+        this.updateTradePanelCalculations();
+
+        // Show panel
+        document.getElementById('futuresTradePanel').style.display = 'block';
+    },
+
+    updateTradePanelCalculations() {
+        const numContractsInput = document.getElementById('futuresNumContracts');
+        const numContracts = parseInt(numContractsInput.value) || 0;
+
+        const spec = GAME_STATE.FUTURES_SPECS[this.tradePanel.exchange];
+        const price = this.tradePanel.price;
+
+        // Calculate values
+        const totalTonnage = spec.contractSize * numContracts;
+        const initialMargin = spec.initialMargin * numContracts;
+        const openingFees = spec.openFee * numContracts;
+        const totalDeducted = initialMargin + openingFees;
+
+        // Update displays
+        document.getElementById('futuresCalcContracts').textContent = numContracts;
+        document.getElementById('futuresCalcTonnage').textContent = `${totalTonnage.toFixed(2)} MT`;
+        document.getElementById('futuresCalcEntryPrice').textContent = `$${Math.round(price).toLocaleString('en-US')}/MT`;
+        document.getElementById('futuresCalcMargin').textContent = `$${initialMargin.toLocaleString('en-US')}`;
+        document.getElementById('futuresCalcFees').textContent = `$${openingFees.toLocaleString('en-US')}`;
+        document.getElementById('futuresCalcTotal').textContent = `$${totalDeducted.toLocaleString('en-US')}`;
+
+        // Check if user has enough funds
+        const executeBtn = document.getElementById('executeFuturesBtn');
+        if (GAME_STATE.practiceFunds < totalDeducted) {
+            executeBtn.disabled = true;
+            executeBtn.textContent = 'INSUFFICIENT FUNDS';
+            executeBtn.style.opacity = '0.5';
+        } else if (numContracts === 0) {
+            executeBtn.disabled = true;
+            executeBtn.textContent = 'ENTER NUMBER OF CONTRACTS';
+            executeBtn.style.opacity = '0.5';
+        } else {
+            executeBtn.disabled = false;
+            executeBtn.textContent = 'OPEN POSITION';
+            executeBtn.style.opacity = '1';
+        }
+    },
+
+    executeTradeFromPanel() {
+        const numContracts = parseInt(document.getElementById('futuresNumContracts').value);
+
+        if (!numContracts || numContracts <= 0) {
+            alert('❌ Please enter a valid number of contracts');
             return;
         }
 
-        const result = GAME_STATE.openFuturesPosition(exchange, contract, direction, parseFloat(tonnage));
+        const result = GAME_STATE.openFuturesPosition(
+            this.tradePanel.exchange,
+            this.tradePanel.contract,
+            this.tradePanel.direction,
+            numContracts
+        );
 
         if (result.success) {
-            alert(`✅ ${result.message}`);
+            alert(result.message);
+            this.closeTradePanel();
             this.render();
         } else {
             alert(`❌ ${result.message}`);
         }
+    },
+
+    closeTradePanel() {
+        document.getElementById('futuresTradePanel').style.display = 'none';
+    },
+
+    makePanelDraggable() {
+        const panel = document.getElementById('futuresTradePanel');
+        const header = document.getElementById('futuresPanelHeader');
+
+        if (!panel || !header) return;
+
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('trade-panel-close')) return;
+
+            isDragging = true;
+            initialX = e.clientX - (parseInt(panel.style.left) || 0);
+            initialY = e.clientY - (parseInt(panel.style.top) || 0);
+            header.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+
+            panel.style.left = currentX + 'px';
+            panel.style.top = currentY + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                header.style.cursor = 'grab';
+            }
+        });
+
+        // Set initial position (center of screen)
+        panel.style.position = 'fixed';
+        panel.style.left = '50%';
+        panel.style.top = '50%';
+        panel.style.transform = 'translate(-50%, -50%)';
+        header.style.cursor = 'grab';
     },
 
     closePosition(positionId) {
@@ -377,6 +581,17 @@ const FuturesWidget = {
             this.render();
         } else {
             alert(`❌ ${result.message}`);
+        }
+    },
+
+    toggleHelp() {
+        const tooltip = document.getElementById('futuresHelpTooltip');
+        if (!tooltip) return;
+
+        if (tooltip.style.display === 'none' || tooltip.style.display === '') {
+            tooltip.style.display = 'block';
+        } else {
+            tooltip.style.display = 'none';
         }
     }
 };
