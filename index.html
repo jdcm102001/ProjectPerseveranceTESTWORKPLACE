@@ -73,8 +73,8 @@
             <div class="header-metric-value" id="headerPhysicalMT">0</div>
         </div>
         <div class="header-metric">
-            <div class="header-metric-label">Futures MT</div>
-            <div class="header-metric-value" id="headerFuturesMT">0</div>
+            <div class="header-metric-label">Margin Posted</div>
+            <div class="header-metric-value" id="headerMarginPosted">$0 / $100K</div>
         </div>
         <div class="header-metric">
             <div class="header-metric-label">Total P&L</div>
@@ -194,6 +194,53 @@
         <!-- Futures Widget Content -->
         <div class="widget-content" data-widget="Futures">
             <div class="futures-widget-content">
+
+                <!-- Help Icon & Tooltip -->
+                <div class="help-icon" onclick="FuturesWidget.toggleHelp()">❓</div>
+                <div class="futures-help-tooltip" id="futuresHelpTooltip" style="display: none;">
+                    <div class="help-tooltip-header">
+                        <strong>🎓 FUTURES TRADING GUIDE</strong>
+                        <button class="help-close-btn" onclick="FuturesWidget.toggleHelp()">×</button>
+                    </div>
+                    <div class="help-tooltip-content">
+                        <p><strong>What are Futures Contracts?</strong></p>
+                        <p>Futures allow you to lock in prices for future copper delivery without buying physical metal. You can profit from price movements or hedge your physical positions.</p>
+
+                        <p><strong>Contract Specifications:</strong></p>
+                        <ul>
+                            <li><strong>LME:</strong> 25 MT per contract, $9,000 initial margin</li>
+                            <li><strong>COMEX:</strong> 11.34 MT per contract (25,000 lbs), $9,000 initial margin</li>
+                        </ul>
+
+                        <p><strong>How to Trade:</strong></p>
+                        <ul>
+                            <li><strong>LONG:</strong> Buy contracts if you expect prices to rise</li>
+                            <li><strong>SHORT:</strong> Sell contracts if you expect prices to fall</li>
+                        </ul>
+
+                        <p><strong>Fees & Margin:</strong></p>
+                        <ul>
+                            <li>Opening fee: $25 per contract</li>
+                            <li>Closing fee: $25 per contract</li>
+                            <li>Initial margin: $9,000 per contract (posted from Practice Funds)</li>
+                            <li>Margin limit: $100,000 total</li>
+                        </ul>
+
+                        <p><strong>Mark-to-Market (MTM):</strong></p>
+                        <p>Each month, positions are revalued at current prices. If margin balance falls below initial margin, you'll receive a margin call requiring a top-up from Practice Funds or face force liquidation.</p>
+
+                        <p><strong>Offset Closing:</strong></p>
+                        <p>Opening an opposite position (e.g., SHORT when you have LONG) automatically closes your existing position(s) using FIFO (First In First Out), settling P&L immediately.</p>
+
+                        <p><strong>Expiry:</strong></p>
+                        <ul>
+                            <li>M+1 contracts expire in 1 turn</li>
+                            <li>M+3 contracts expire in 3 turns</li>
+                            <li>M+12 contracts expire in 12 turns</li>
+                        </ul>
+                        <p>At expiry, positions auto-close with final P&L settlement.</p>
+                    </div>
+                </div>
 
                 <!-- Summary Stats -->
                 <div class="match-stats" style="margin-bottom: 20px;">
@@ -420,6 +467,82 @@
             </div>
 
             <button class="execute-btn sell" id="executeSellBtn" onclick="window.TradePanel.executeSell()">SELL COPPER</button>
+        </div>
+    </div>
+
+    <!-- Futures Trade Panel (500x600, Draggable) -->
+    <div class="trade-panel" id="futuresTradePanel" style="display: none; width: 500px;">
+        <div class="trade-panel-header" id="futuresPanelHeader">
+            <span class="trade-panel-title" id="futuresPanelTitle">Open Futures Position</span>
+            <button class="trade-panel-close" onclick="FuturesWidget.closeTradePanel()">×</button>
+        </div>
+        <div class="trade-panel-body">
+            <div class="info-box">
+                <div class="info-row">
+                    <span class="info-label">EXCHANGE</span>
+                    <span class="info-value" id="futuresExchangeDisplay">LME</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">CONTRACT</span>
+                    <span class="info-value" id="futuresContractDisplay">M+1</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">DIRECTION</span>
+                    <span class="info-value" id="futuresDirectionDisplay">LONG</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">CURRENT PRICE</span>
+                    <span class="info-value" id="futuresCurrentPrice">$9,024/MT</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">CONTRACT SIZE</span>
+                    <span class="info-value" id="futuresContractSize">25 MT/contract</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Number of Contracts</label>
+                <input type="number" class="form-input" id="futuresNumContracts" min="1" max="11" value="1" oninput="FuturesWidget.updateTradePanelCalculations()">
+                <div style="font-size: 11px; color: #888; margin-top: 6px;">Max contracts: <span id="futuresMaxContracts">11</span> (based on margin limit)</div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-title">Trade Summary</div>
+                <div class="calc-row">
+                    <span class="calc-label">Contracts:</span>
+                    <span class="calc-value" id="futuresCalcContracts">1</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Total Tonnage:</span>
+                    <span class="calc-value" id="futuresCalcTonnage">25 MT</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Entry Price:</span>
+                    <span class="calc-value" id="futuresCalcEntryPrice">$9,024/MT</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Initial Margin Required:</span>
+                    <span class="calc-value" id="futuresCalcMargin">$9,000</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Opening Fees:</span>
+                    <span class="calc-value" id="futuresCalcFees">$25</span>
+                </div>
+                <div class="calc-row total-row">
+                    <span class="calc-label">Total Deducted from Funds:</span>
+                    <span class="calc-value" id="futuresCalcTotal">$9,025</span>
+                </div>
+                <div class="warning-box" style="margin-top: 15px;">
+                    💡 <span id="futuresTradeWarning">Margin will be returned when position is closed. P&L settled from margin balance.</span>
+                </div>
+                <div class="info-box" style="margin-top: 10px; background: rgba(245, 158, 11, 0.1); border-left-color: #f59e0b;">
+                    <div style="font-size: 12px; line-height: 1.6;">
+                        <strong style="color: #f59e0b;">⏰ Expiry:</strong> <span id="futuresExpiryInfo">This M+1 contract expires in 1 turn</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="execute-btn" id="executeFuturesBtn" onclick="FuturesWidget.executeTradeFromPanel()">OPEN POSITION</button>
         </div>
     </div>
 
