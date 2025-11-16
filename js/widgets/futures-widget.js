@@ -23,12 +23,42 @@ const FuturesWidget = {
         const monthData = GAME_STATE.currentMonthData;
 
         const contracts = [
-            { exchange: 'LME', contract: 'M+1', price: monthData.PRICING.LME.FUTURES_1M },
-            { exchange: 'LME', contract: 'M+3', price: monthData.PRICING.LME.FUTURES_3M },
-            { exchange: 'LME', contract: 'M+12', price: monthData.PRICING.LME.FUTURES_12M },
-            { exchange: 'COMEX', contract: 'M+1', price: monthData.PRICING.COMEX.FUTURES_1M },
-            { exchange: 'COMEX', contract: 'M+3', price: monthData.PRICING.COMEX.FUTURES_3M },
-            { exchange: 'COMEX', contract: 'M+12', price: monthData.PRICING.COMEX.FUTURES_12M }
+            {
+                exchange: 'LME',
+                contract: 'M+1',
+                price: monthData.PRICING.LME.FUTURES_1M,
+                size: '25 MT/contract'
+            },
+            {
+                exchange: 'LME',
+                contract: 'M+3',
+                price: monthData.PRICING.LME.FUTURES_3M,
+                size: '25 MT/contract'
+            },
+            {
+                exchange: 'LME',
+                contract: 'M+12',
+                price: monthData.PRICING.LME.FUTURES_12M,
+                size: '25 MT/contract'
+            },
+            {
+                exchange: 'COMEX',
+                contract: 'M+1',
+                price: monthData.PRICING.COMEX.FUTURES_1M,
+                size: '11.34 MT/contract'
+            },
+            {
+                exchange: 'COMEX',
+                contract: 'M+3',
+                price: monthData.PRICING.COMEX.FUTURES_3M,
+                size: '11.34 MT/contract'
+            },
+            {
+                exchange: 'COMEX',
+                contract: 'M+12',
+                price: monthData.PRICING.COMEX.FUTURES_12M,
+                size: '11.34 MT/contract'
+            }
         ];
 
         const html = `
@@ -36,6 +66,7 @@ const FuturesWidget = {
                 <thead>
                     <tr>
                         <th>CONTRACT</th>
+                        <th>SIZE</th>
                         <th>PRICE</th>
                         <th>ACTIONS</th>
                     </tr>
@@ -44,6 +75,7 @@ const FuturesWidget = {
                     ${contracts.map(c => `
                         <tr>
                             <td><span class="exchange-badge">${c.exchange}</span> <strong>${c.contract}</strong></td>
+                            <td>${c.size}</td>
                             <td>$${Math.round(c.price).toLocaleString('en-US')}/MT</td>
                             <td>
                                 <button class="trade-btn buy-btn" onclick="FuturesWidget.openPosition('${c.exchange}', '${c.contract}', 'LONG')">LONG</button>
@@ -70,6 +102,7 @@ const FuturesWidget = {
                     <tr>
                         <th>CONTRACT</th>
                         <th>DIRECTION</th>
+                        <th>CONTRACTS</th>
                         <th>TONNAGE</th>
                         <th>ENTRY</th>
                         <th>CURRENT</th>
@@ -86,6 +119,7 @@ const FuturesWidget = {
                             <tr>
                                 <td><span class="exchange-badge">${pos.exchange}</span> <strong>${pos.contract}</strong></td>
                                 <td><span class="${directionBadge}">${pos.direction}</span></td>
+                                <td>${pos.numContracts} × ${pos.contractSize} MT</td>
                                 <td>${pos.tonnage} MT</td>
                                 <td>$${Math.round(pos.entryPrice).toLocaleString('en-US')}</td>
                                 <td>$${Math.round(pos.currentPrice).toLocaleString('en-US')}</td>

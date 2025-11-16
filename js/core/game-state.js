@@ -1,3 +1,17 @@
+// Futures contract specifications
+const FUTURES_CONTRACTS = {
+    LME: {
+        contractSize: 25,              // 25 Metric Tons per contract
+        unit: 'MT',
+        description: 'LME Copper Futures (25 MT per contract)'
+    },
+    COMEX: {
+        contractSize: 11.34,           // ≈11.34 MT (25,000 lbs)
+        unit: 'MT',
+        description: 'COMEX Copper Futures (25,000 lbs ≈ 11.34 MT per contract)'
+    }
+};
+
 const GAME_STATE = {
     currentTurn: 1,
     currentMonth: 'January',
@@ -245,6 +259,11 @@ const GAME_STATE = {
 
     openFuturesPosition(exchange, contract, direction, tonnage) {
         const monthData = this.currentMonthData;
+        const contractSpec = FUTURES_CONTRACTS[exchange];
+
+        // Calculate number of contracts needed
+        const numContracts = Math.ceil(tonnage / contractSpec.contractSize);
+        const actualTonnage = numContracts * contractSpec.contractSize;
 
         // Get futures price based on contract
         let futuresPrice;
@@ -258,7 +277,7 @@ const GAME_STATE = {
             futuresPrice = pricing.FUTURES_12M;
         }
 
-        const notionalValue = futuresPrice * tonnage;
+        const notionalValue = futuresPrice * actualTonnage;
         const marginRequired = notionalValue * 0.10; // 10% margin
 
         // Check margin availability
@@ -276,7 +295,9 @@ const GAME_STATE = {
             exchange: exchange,
             contract: contract,
             direction: direction,
-            tonnage: tonnage,
+            tonnage: actualTonnage,
+            numContracts: numContracts,
+            contractSize: contractSpec.contractSize,
             entryPrice: futuresPrice,
             currentPrice: futuresPrice,
             unrealizedPL: 0,
@@ -293,7 +314,7 @@ const GAME_STATE = {
         return {
             success: true,
             position: position,
-            message: `Opened ${direction} ${tonnage}MT ${exchange} ${contract} @ $${Math.round(futuresPrice).toLocaleString('en-US')}/MT`
+            message: `Opened ${direction} ${numContracts} ${exchange} ${contract} contract(s)\nActual tonnage: ${actualTonnage} MT (${numContracts}× ${contractSpec.contractSize} MT)\nEntry: $${Math.round(futuresPrice).toLocaleString('en-US')}/MT`
         };
     },
 

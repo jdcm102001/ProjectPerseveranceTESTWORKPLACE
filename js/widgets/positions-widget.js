@@ -189,7 +189,6 @@ const PositionsWidget = {
         html += `</tbody></table>`;
         container.innerHTML = html;
         this.renderMatchStats();
-        this.renderFutures();
     },
 
     renderMatchStats() {
@@ -211,54 +210,6 @@ const PositionsWidget = {
         } else {
             statsDiv.style.display = 'none';
         }
-    },
-
-    renderFutures() {
-        const container = document.getElementById('positionsContainer');
-        if (!container) return;
-
-        const futuresHTML = `
-            <div style="margin-top: 30px;">
-                <div style="font-size: 13px; font-weight: 700; color: #4a9eff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px;">📊 FUTURES POSITIONS</div>
-                <table class="positions-table">
-                    <thead>
-                        <tr>
-                            <th>EXCHANGE</th>
-                            <th>CONTRACT</th>
-                            <th>POSITION</th>
-                            <th>CONTRACT AMOUNT</th>
-                            <th>VALUE OF CONTRACTS</th>
-                            <th>MARGIN</th>
-                        </tr>
-                    </thead>
-                    <tbody>${this.renderFuturesRows()}</tbody>
-                </table>
-            </div>
-        `;
-
-        container.innerHTML += futuresHTML;
-    },
-
-    renderFuturesRows() {
-        if (!GAME_STATE.futuresPositions || GAME_STATE.futuresPositions.length === 0) {
-            return '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #666;">No futures positions</td></tr>';
-        }
-
-        return GAME_STATE.futuresPositions.map(future => {
-            const posClass = future.position.toLowerCase();
-            return `
-                <tr>
-                    <td><strong>${future.exchange}</strong></td>
-                    <td>${future.contract}</td>
-                    <td><span class="position-badge ${posClass}">${future.position}</span></td>
-                    <td>${future.contractAmount} (${future.contractAmount * 25} MT)</td>
-                    <td class="${posClass === 'short' ? 'price-negative' : 'price-positive'}">
-                        ${posClass === 'short' ? '-' : '+'}$${future.value.toLocaleString('en-US')}
-                    </td>
-                    <td>$${future.margin.toLocaleString('en-US')}</td>
-                </tr>
-            `;
-        }).join('');
     },
 
     autoMatchByDestination() {
