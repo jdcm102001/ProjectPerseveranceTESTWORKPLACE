@@ -1,0 +1,138 @@
+/* ===== WORKSPACE ===== */
+.workspace {
+    flex: 1;
+    display: flex;
+    background: #1a1a1a;
+    position: relative;
+}
+
+.panel-zone {
+    flex: 1;
+    min-height: 100%;
+    background: #1e1e1e;
+    position: relative;
+    display: flex;
+}
+
+.panel-zone.empty {
+    display: none !important;
+}
+
+.panel-zone.drop-zone-highlight {
+    background: #1e1e1e;
+}
+
+.panel-zone.drag-over {
+    background: #1a2a3a;
+}
+
+.panel-divider {
+    width: 1px;
+    background: #333;
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.panel-divider:hover,
+.panel-divider.dragging {
+    background: #4a9eff;
+    width: 2px;
+}
+
+.panel-divider::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -5px;
+    right: -5px;
+    bottom: 0;
+}
+
+.panel-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: #242424;
+}
+
+.panel-header {
+    display: flex;
+    background: #2a2a2a;
+    border-bottom: 1px solid #333;
+    min-height: 40px;
+}
+
+.panel-header.tab-drag-over {
+    background: #1a2a3a;
+    border-bottom: 2px solid #4a9eff;
+}
+
+.panel-tab {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background: #2a2a2a;
+    border-right: 1px solid #333;
+    cursor: move;
+    transition: all 0.2s;
+    font-size: 13px;
+}
+
+.panel-tab.active {
+    background: #242424;
+    color: #4a9eff;
+}
+
+.panel-tab:hover {
+    background: #333;
+}
+
+.panel-tab-name {
+    margin-right: 10px;
+}
+
+.close-btn {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    font-size: 14px;
+    color: #888;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: #ff4444;
+    color: #fff;
+}
+
+.panel-content {
+    flex: 1;
+    overflow: auto;
+}
+
+.widget-content {
+    display: none;
+    height: 100%;
+}
+
+.widget-content.active {
+    display: block;
+}
+
+/* ===== DRAG PREVIEW ===== */
+.drag-preview {
+    position: fixed;
+    padding: 12px;
+    background: #2a2a2a;
+    border: 1px solid #4a9eff;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.8;
+    display: none;
+}
