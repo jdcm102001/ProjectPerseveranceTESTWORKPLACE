@@ -9,6 +9,7 @@ import { advanceTurn, toggleSidebar, toggleTheme, showSaleDetails, closeSaleDeta
 
 // Import widget modules
 import { MarketsWidget } from './widgets/markets-widget.js';
+import { FuturesWidget } from './widgets/futures-widget.js';
 
 // Import drag & drop modules
 import {
@@ -53,6 +54,7 @@ window.closeWidget = closeWidget;
 document.addEventListener('DOMContentLoaded', function() {
     GAME_STATE.init();
     MarketsWidget.init();
+    FuturesWidget.init();
     TradePanel.init();
 
     // Setup drag and drop

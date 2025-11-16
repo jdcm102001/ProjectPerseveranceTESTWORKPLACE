@@ -8,6 +8,9 @@ const GAME_STATE = {
     locInterestNextMonth: 0,
     physicalPositions: [],
     futuresPositions: [],
+    futuresMarginUsed: 0,
+    futuresMarginLimit: 100000, // $100K margin pool
+    totalFuturesPL: 0,
     totalPL: 0,
 
     // Track monthly purchases/sales
@@ -234,6 +237,118 @@ const GAME_STATE = {
         document.getElementById('headerPhysicalMT').textContent = totalPhysicalMT.toFixed(1);
         document.getElementById('headerFuturesMT').textContent = totalFuturesMT.toFixed(1);
         document.getElementById('headerPL').textContent = `$${Math.round(this.totalPL).toLocaleString('en-US')}`;
+    },
+
+    // ==========================================
+    // FUTURES TRADING FUNCTIONS
+    // ==========================================
+
+    openFuturesPosition(exchange, contract, direction, tonnage) {
+        const monthData = this.currentMonthData;
+
+        // Get futures price based on contract
+        let futuresPrice;
+        const pricing = exchange === 'LME' ? monthData.PRICING.LME : monthData.PRICING.COMEX;
+
+        if (contract === 'M+1') {
+            futuresPrice = pricing.FUTURES_1M;
+        } else if (contract === 'M+3') {
+            futuresPrice = pricing.FUTURES_3M;
+        } else if (contract === 'M+12') {
+            futuresPrice = pricing.FUTURES_12M;
+        }
+
+        const notionalValue = futuresPrice * tonnage;
+        const marginRequired = notionalValue * 0.10; // 10% margin
+
+        // Check margin availability
+        const availableMargin = this.futuresMarginLimit - this.futuresMarginUsed;
+        if (marginRequired > availableMargin) {
+            return {
+                success: false,
+                message: `Insufficient margin. Need $${Math.round(marginRequired).toLocaleString('en-US')}, available $${Math.round(availableMargin).toLocaleString('en-US')}`
+            };
+        }
+
+        // Create position
+        const position = {
+            id: Date.now(),
+            exchange: exchange,
+            contract: contract,
+            direction: direction,
+            tonnage: tonnage,
+            entryPrice: futuresPrice,
+            currentPrice: futuresPrice,
+            unrealizedPL: 0,
+            margin: marginRequired,
+            openTurn: this.currentTurn,
+            openMonth: this.currentMonth
+        };
+
+        this.futuresPositions.push(position);
+        this.futuresMarginUsed += marginRequired;
+
+        this.updateHeader();
+
+        return {
+            success: true,
+            position: position,
+            message: `Opened ${direction} ${tonnage}MT ${exchange} ${contract} @ $${Math.round(futuresPrice).toLocaleString('en-US')}/MT`
+        };
+    },
+
+    closeFuturesPosition(positionId) {
+        const index = this.futuresPositions.findIndex(p => p.id === positionId);
+        if (index === -1) {
+            return { success: false, message: 'Position not found' };
+        }
+
+        const position = this.futuresPositions[index];
+        const realizedPL = position.unrealizedPL;
+
+        // Return margin
+        this.futuresMarginUsed -= position.margin;
+
+        // Add P&L to practice funds
+        this.practiceFunds += realizedPL;
+        this.totalPL += realizedPL;
+        this.totalFuturesPL += realizedPL;
+
+        // Remove position
+        this.futuresPositions.splice(index, 1);
+
+        this.updateHeader();
+
+        return {
+            success: true,
+            realizedPL: realizedPL,
+            message: `Closed position. P&L: ${realizedPL >= 0 ? '+' : ''}$${Math.round(realizedPL).toLocaleString('en-US')}`
+        };
+    },
+
+    updateFuturesPrices() {
+        const monthData = this.currentMonthData;
+
+        this.futuresPositions.forEach(position => {
+            // Get current futures price
+            let currentPrice;
+            const pricing = position.exchange === 'LME' ? monthData.PRICING.LME : monthData.PRICING.COMEX;
+
+            if (position.contract === 'M+1') {
+                currentPrice = pricing.FUTURES_1M;
+            } else if (position.contract === 'M+3') {
+                currentPrice = pricing.FUTURES_3M;
+            } else if (position.contract === 'M+12') {
+                currentPrice = pricing.FUTURES_12M;
+            }
+
+            position.currentPrice = currentPrice;
+
+            // Calculate P&L based on direction
+            const priceDiff = currentPrice - position.entryPrice;
+            const plMultiplier = position.direction === 'LONG' ? 1 : -1;
+            position.unrealizedPL = priceDiff * position.tonnage * plMultiplier;
+        });
     }
 };
 
