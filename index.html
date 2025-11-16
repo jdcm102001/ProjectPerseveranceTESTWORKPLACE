@@ -168,7 +168,7 @@
     <div class="trade-panel" id="buyPanel">
         <div class="trade-panel-header" id="buyPanelHeader">
             <span class="trade-panel-title">Buy Copper</span>
-            <button class="trade-panel-close" id="buyPanelClose">×</button>
+            <button class="trade-panel-close" id="buyPanelClose" onclick="window.TradePanel.close()">×</button>
         </div>
         <div class="trade-panel-body">
             <div class="info-box">
@@ -260,7 +260,7 @@
                 </div>
             </div>
 
-            <button class="execute-btn" id="executeBuyBtn">PURCHASE COPPER</button>
+            <button class="execute-btn" id="executeBuyBtn" onclick="window.TradePanel.executeBuy()">PURCHASE COPPER</button>
         </div>
     </div>
 
@@ -268,7 +268,7 @@
     <div class="trade-panel" id="sellPanel">
         <div class="trade-panel-header sell" id="sellPanelHeader">
             <span class="trade-panel-title">Sell Copper</span>
-            <button class="trade-panel-close" id="sellPanelClose">×</button>
+            <button class="trade-panel-close" id="sellPanelClose" onclick="window.TradePanel.close()">×</button>
         </div>
         <div class="trade-panel-body">
             <div class="info-box">
@@ -334,7 +334,7 @@
                 </div>
             </div>
 
-            <button class="execute-btn sell" id="executeSellBtn">SELL COPPER</button>
+            <button class="execute-btn sell" id="executeSellBtn" onclick="window.TradePanel.executeSell()">SELL COPPER</button>
         </div>
     </div>
 
