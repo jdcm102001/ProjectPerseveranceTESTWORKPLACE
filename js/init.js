@@ -80,9 +80,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Handle trade button clicks (workaround for onclick not firing)
-        if (e.target.classList.contains('trade-btn') && e.target.onclick) {
-            e.target.onclick(e);
+        // Handle buy button clicks
+        if (e.target.classList.contains('buy-btn') && !e.target.disabled) {
+            const supplier = e.target.dataset.supplier;
+            const port = e.target.dataset.port;
+            const minMT = parseFloat(e.target.dataset.min);
+            const maxMT = parseFloat(e.target.dataset.max);
+            const basis = e.target.dataset.basis;
+            const premium = parseFloat(e.target.dataset.premium);
+            const isLTA = e.target.dataset.islta === 'true';
+
+            TradePanel.openBuy(supplier, port, minMT, maxMT, basis, premium, isLTA);
+        }
+
+        // Handle sell button clicks
+        if (e.target.classList.contains('sell-btn') && !e.target.disabled) {
+            const buyer = e.target.dataset.buyer;
+            const dest = e.target.dataset.dest;
+            const minMT = parseFloat(e.target.dataset.min);
+            const maxMT = parseFloat(e.target.dataset.max);
+            const exchange = e.target.dataset.exchange;
+            const premium = parseFloat(e.target.dataset.premium);
+
+            TradePanel.openSell(buyer, dest, minMT, maxMT, exchange, premium);
         }
     });
 
