@@ -1,0 +1,328 @@
+const JANUARY_DATA = {
+  "TURN": 1,
+  "MONTH": "January",
+  "MARKET_DEPTH": {
+    "SUPPLY": {
+      "PERUVIAN": {
+        "LTA_FIXED_MT": 5,
+        "MAX_OPTIONAL_SPOT_MT": 17,
+        "TOTAL_MAX_AVAILABLE_MT": 22,
+        "ORIGIN_PORT": "Callao",
+        "SUPPLIER_PREMIUM_USD": 15
+      },
+      "CHILEAN": {
+        "MIN_AVAILABLE_MT": 20,
+        "MAX_AVAILABLE_MT": 75,
+        "ORIGIN_PORT": "Antofagasta",
+        "SUPPLIER_PREMIUM_USD": 0
+      },
+      "TOTAL_MARKET_DEPTH_MT": 92
+    },
+    "DEMAND": {
+      "AMERICAS": {
+        "DEMAND_MT": 70
+      },
+      "ASIA": {
+        "DEMAND_MT": 95
+      },
+      "EUROPE": {
+        "DEMAND_MT": 85
+      },
+      "TOTAL_DEMAND_MT": 250
+    }
+  },
+  "PRICING": {
+    "LME": {
+      "SPOT_AVG": 8960,
+      "FUTURES_1M": 9060,
+      "FUTURES_3M": 9210,
+      "FUTURES_12M": 9560,
+      "CURVE_STRUCTURE": "Strong Contango"
+    },
+    "COMEX": {
+      "SPOT_AVG": 9344,
+      "FUTURES_1M": 9444,
+      "FUTURES_3M": 9594,
+      "FUTURES_12M": 9944,
+      "CURVE_STRUCTURE": "Strong Contango"
+    },
+    "M_PLUS_1": {
+      "LME_AVG": 9284,
+      "COMEX_AVG": 10049,
+      "DESCRIPTION": "M+1 (February) average prices - used for both supplier purchase and client sale pricing based on sailing date"
+    }
+  },
+  "LOGISTICS": {
+    "FREIGHT_RATES": {
+      "CALLAO": {
+        "SHANGHAI": {
+          "PORT_NAME": "Shanghai",
+          "COUNTRY": "China",
+          "DISTANCE_NM": 9500,
+          "TRAVEL_TIME_DAYS": 28.3,
+          "CIF_RATE_USD_PER_TONNE": 63,
+          "FOB_RATE_USD_PER_TONNE": 64
+        },
+        "BUSAN": {
+          "PORT_NAME": "Busan",
+          "COUNTRY": "South Korea",
+          "DISTANCE_NM": 9700,
+          "TRAVEL_TIME_DAYS": 28.9,
+          "CIF_RATE_USD_PER_TONNE": 65.5,
+          "FOB_RATE_USD_PER_TONNE": 64
+        },
+        "NINGBO": {
+          "PORT_NAME": "Ningbo",
+          "COUNTRY": "China",
+          "DISTANCE_NM": 9450,
+          "TRAVEL_TIME_DAYS": 28.1,
+          "CIF_RATE_USD_PER_TONNE": 62.5,
+          "FOB_RATE_USD_PER_TONNE": 64
+        },
+        "SINGAPORE": {
+          "PORT_NAME": "Singapore",
+          "COUNTRY": "Singapore",
+          "DISTANCE_NM": 10200,
+          "TRAVEL_TIME_DAYS": 30.4,
+          "CIF_RATE_USD_PER_TONNE": 70,
+          "FOB_RATE_USD_PER_TONNE": 64
+        },
+        "ROTTERDAM": {
+          "PORT_NAME": "Rotterdam",
+          "COUNTRY": "Netherlands",
+          "DISTANCE_NM": 6800,
+          "TRAVEL_TIME_DAYS": 20.2,
+          "CIF_RATE_USD_PER_TONNE": 82,
+          "FOB_RATE_USD_PER_TONNE": 86
+        },
+        "VALENCIA": {
+          "PORT_NAME": "Valencia",
+          "COUNTRY": "Spain",
+          "DISTANCE_NM": 6300,
+          "TRAVEL_TIME_DAYS": 18.8,
+          "CIF_RATE_USD_PER_TONNE": 78,
+          "FOB_RATE_USD_PER_TONNE": 86
+        },
+        "HAMBURG": {
+          "PORT_NAME": "Hamburg",
+          "COUNTRY": "Germany",
+          "DISTANCE_NM": 7100,
+          "TRAVEL_TIME_DAYS": 21.1,
+          "CIF_RATE_USD_PER_TONNE": 84,
+          "FOB_RATE_USD_PER_TONNE": 86
+        },
+        "ANTWERP": {
+          "PORT_NAME": "Antwerp",
+          "COUNTRY": "Belgium",
+          "DISTANCE_NM": 6900,
+          "TRAVEL_TIME_DAYS": 20.5,
+          "CIF_RATE_USD_PER_TONNE": 83,
+          "FOB_RATE_USD_PER_TONNE": 86
+        },
+        "NEW_ORLEANS": {
+          "PORT_NAME": "New Orleans",
+          "COUNTRY": "USA",
+          "DISTANCE_NM": 3100,
+          "TRAVEL_TIME_DAYS": 9.2,
+          "CIF_RATE_USD_PER_TONNE": 95,
+          "FOB_RATE_USD_PER_TONNE": 112
+        },
+        "HOUSTON": {
+          "PORT_NAME": "Houston",
+          "COUNTRY": "USA",
+          "DISTANCE_NM": 3200,
+          "TRAVEL_TIME_DAYS": 9.5,
+          "CIF_RATE_USD_PER_TONNE": 98,
+          "FOB_RATE_USD_PER_TONNE": 112
+        },
+        "NEWARK": {
+          "PORT_NAME": "Newark",
+          "COUNTRY": "USA",
+          "DISTANCE_NM": 4100,
+          "TRAVEL_TIME_DAYS": 12.2,
+          "CIF_RATE_USD_PER_TONNE": 105,
+          "FOB_RATE_USD_PER_TONNE": 112
+        },
+        "MONTREAL": {
+          "PORT_NAME": "Montreal",
+          "COUNTRY": "Canada",
+          "DISTANCE_NM": 5200,
+          "TRAVEL_TIME_DAYS": 15.5,
+          "CIF_RATE_USD_PER_TONNE": 115,
+          "FOB_RATE_USD_PER_TONNE": 112
+        }
+      },
+      "ANTOFAGASTA": {
+        "SHANGHAI": {
+          "PORT_NAME": "Shanghai",
+          "COUNTRY": "China",
+          "DISTANCE_NM": 10500,
+          "TRAVEL_TIME_DAYS": 31.3,
+          "CIF_RATE_USD_PER_TONNE": 65.5,
+          "FOB_RATE_USD_PER_TONNE": 64
+        },
+        "BUSAN": {
+          "PORT_NAME": "Busan",
+          "COUNTRY": "South Korea",
+          "DISTANCE_NM": 10700,
+          "TRAVEL_TIME_DAYS": 31.8,
+          "CIF_RATE_USD_PER_TONNE": 68,
+          "FOB_RATE_USD_PER_TONNE": 64
+        },
+        "NINGBO": {
+          "PORT_NAME": "Ningbo",
+          "COUNTRY": "China",
+          "DISTANCE_NM": 10450,
+          "TRAVEL_TIME_DAYS": 31.1,
+          "CIF_RATE_USD_PER_TONNE": 65,
+          "FOB_RATE_USD_PER_TONNE": 64
+        },
+        "SINGAPORE": {
+          "PORT_NAME": "Singapore",
+          "COUNTRY": "Singapore",
+          "DISTANCE_NM": 11200,
+          "TRAVEL_TIME_DAYS": 33.3,
+          "CIF_RATE_USD_PER_TONNE": 72.5,
+          "FOB_RATE_USD_PER_TONNE": 64
+        },
+        "ROTTERDAM": {
+          "PORT_NAME": "Rotterdam",
+          "COUNTRY": "Netherlands",
+          "DISTANCE_NM": 7800,
+          "TRAVEL_TIME_DAYS": 23.2,
+          "CIF_RATE_USD_PER_TONNE": 86,
+          "FOB_RATE_USD_PER_TONNE": 86
+        },
+        "VALENCIA": {
+          "PORT_NAME": "Valencia",
+          "COUNTRY": "Spain",
+          "DISTANCE_NM": 7300,
+          "TRAVEL_TIME_DAYS": 21.7,
+          "CIF_RATE_USD_PER_TONNE": 82,
+          "FOB_RATE_USD_PER_TONNE": 86
+        },
+        "HAMBURG": {
+          "PORT_NAME": "Hamburg",
+          "COUNTRY": "Germany",
+          "DISTANCE_NM": 8100,
+          "TRAVEL_TIME_DAYS": 24.1,
+          "CIF_RATE_USD_PER_TONNE": 88,
+          "FOB_RATE_USD_PER_TONNE": 86
+        },
+        "ANTWERP": {
+          "PORT_NAME": "Antwerp",
+          "COUNTRY": "Belgium",
+          "DISTANCE_NM": 7900,
+          "TRAVEL_TIME_DAYS": 23.5,
+          "CIF_RATE_USD_PER_TONNE": 87,
+          "FOB_RATE_USD_PER_TONNE": 86
+        },
+        "NEW_ORLEANS": {
+          "PORT_NAME": "New Orleans",
+          "COUNTRY": "USA",
+          "DISTANCE_NM": 4100,
+          "TRAVEL_TIME_DAYS": 12.2,
+          "CIF_RATE_USD_PER_TONNE": 105,
+          "FOB_RATE_USD_PER_TONNE": 112
+        },
+        "HOUSTON": {
+          "PORT_NAME": "Houston",
+          "COUNTRY": "USA",
+          "DISTANCE_NM": 4200,
+          "TRAVEL_TIME_DAYS": 12.5,
+          "CIF_RATE_USD_PER_TONNE": 108,
+          "FOB_RATE_USD_PER_TONNE": 112
+        },
+        "NEWARK": {
+          "PORT_NAME": "Newark",
+          "COUNTRY": "USA",
+          "DISTANCE_NM": 5100,
+          "TRAVEL_TIME_DAYS": 15.2,
+          "CIF_RATE_USD_PER_TONNE": 115,
+          "FOB_RATE_USD_PER_TONNE": 112
+        },
+        "MONTREAL": {
+          "PORT_NAME": "Montreal",
+          "COUNTRY": "Canada",
+          "DISTANCE_NM": 6200,
+          "TRAVEL_TIME_DAYS": 18.5,
+          "CIF_RATE_USD_PER_TONNE": 125,
+          "FOB_RATE_USD_PER_TONNE": 112
+        }
+      }
+    }
+  },
+  "FIXED_RULES": {
+    "COST_OF_CARRY": {
+      "MONTHLY_RATE": 0.0046,
+      "SOFR_1M_PERCENT": 4.3,
+      "FINANCING_PERIOD_MONTHS": 2,
+      "DESCRIPTION": "Financing cost for capital tied up between purchase and sale settlement. Both supplier purchase and client sale are priced at M+1 (month following sailing date)."
+    },
+    "SUPPLIER_RULES": [
+      {
+        "SUPPLIER_TYPE": "Peruvian (LTA)",
+        "RELATIONSHIP": "Mandatory LTA",
+        "PURCHASE_BASIS": "LME M+1",
+        "TONNAGE_RANGE": "5 MT Fixed",
+        "SUPPLIER_PREMIUM_USD": 10,
+        "ORIGIN_PORT": "Callao (Peru)"
+      },
+      {
+        "SUPPLIER_TYPE": "Peruvian (Spot)",
+        "RELATIONSHIP": "Optional Spot",
+        "PURCHASE_BASIS": "LME M+1 or COMEX M+1",
+        "TONNAGE_RANGE": "5–15 MT",
+        "SUPPLIER_PREMIUM_USD": 15,
+        "ORIGIN_PORT": "Callao (Peru)"
+      },
+      {
+        "SUPPLIER_TYPE": "Chilean (Spot)",
+        "RELATIONSHIP": "Optional Spot",
+        "PURCHASE_BASIS": "LME M+1 or COMEX M+1",
+        "TONNAGE_RANGE": "20–100 MT",
+        "SUPPLIER_PREMIUM_USD": 0,
+        "ORIGIN_PORT": "Antofagasta (Chile)"
+      },
+      {
+        "SUPPLIER_TYPE": "Flash Sale",
+        "RELATIONSHIP": "Narrative Event",
+        "PURCHASE_BASIS": "LME/COMEX Spot (M)",
+        "TONNAGE_RANGE": "5–25 MT",
+        "SUPPLIER_PREMIUM_USD": 0,
+        "ORIGIN_PORT": "N/A"
+      }
+    ]
+  },
+  "CLIENTS": {
+    "OPPORTUNITIES": [
+      {
+        "REGION": "AMERICAS",
+        "MIN_QUANTITY_MT": 45,
+        "MAX_QUANTITY_MT": 70,
+        "PORT_OF_DISCHARGE": "New Orleans, LA",
+        "REFERENCE_EXCHANGE": "COMEX",
+        "PORT_TYPE": "Hub",
+        "REGIONAL_PREMIUM_USD": 50
+      },
+      {
+        "REGION": "ASIA",
+        "MIN_QUANTITY_MT": 10,
+        "MAX_QUANTITY_MT": 95,
+        "PORT_OF_DISCHARGE": "Shanghai",
+        "REFERENCE_EXCHANGE": "LME",
+        "PORT_TYPE": "Hub",
+        "REGIONAL_PREMIUM_USD": 120
+      },
+      {
+        "REGION": "EUROPE",
+        "MIN_QUANTITY_MT": 20,
+        "MAX_QUANTITY_MT": 85,
+        "PORT_OF_DISCHARGE": "Rotterdam",
+        "REFERENCE_EXCHANGE": "LME",
+        "PORT_TYPE": "Hub",
+        "REGIONAL_PREMIUM_USD": 90
+      }
+    ]
+  }
+};

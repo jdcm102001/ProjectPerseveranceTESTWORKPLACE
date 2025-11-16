@@ -1,0 +1,3200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Simulator - Complete Integration</title>
+    
+    <!-- Game Data & State Management -->
+    <script src="january.js"></script>
+    <script src="february.js"></script>
+    <script src="march.js"></script>
+    <script src="april.js"></script>
+    
+    <style>
+        /* ===== GLOBAL RESET ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ===== THEME VARIABLES ===== */
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2a2a2a;
+            --bg-tertiary: #242424;
+            --bg-header: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+            --text-accent: #4a9eff;
+            --border-color: #333;
+            --panel-bg: #1e1e1e;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f5;
+            --bg-header: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+            --text-primary: #1a1a1a;
+            --text-secondary: #666;
+            --text-accent: #2563eb;
+            --border-color: #d1d5db;
+            --panel-bg: #ffffff;
+        }
+
+        [data-theme="light"] .sidebar {
+            background: #ffffff;
+        }
+
+        [data-theme="light"] .sidebar-toggle {
+            background: #ffffff;
+        }
+
+        [data-theme="light"] .widget-item {
+            background: #f5f5f5;
+        }
+
+        [data-theme="light"] .panel-container {
+            background: #ffffff;
+        }
+
+        [data-theme="light"] .panel-header {
+            background: #f5f5f5;
+        }
+
+        [data-theme="light"] .panel-tab {
+            background: #f5f5f5;
+        }
+
+        [data-theme="light"] .panel-tab.active {
+            background: #ffffff;
+        }
+
+        [data-theme="light"] .panel-zone {
+            background: #ffffff;
+        }
+
+        [data-theme="light"] .workspace {
+            background: #ffffff;
+        }
+
+        [data-theme="light"] .drag-preview {
+            background: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        /* ===== FIXED HEADER BAR ===== */
+        .header-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 65px;
+            background: var(--bg-header);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 200;
+            gap: 40px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-metric {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .header-metric-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .header-metric-value {
+            font-size: 17px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .theme-toggle {
+            margin-left: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .next-turn-btn {
+            margin-left: auto;
+            background: rgba(16, 185, 129, 0.2);
+            border: 2px solid #10b981;
+            color: #10b981;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+        }
+
+        .next-turn-btn:hover {
+            background: #10b981;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .container {
+            display: flex;
+            height: calc(100vh - 65px);
+            margin-top: 65px;
+        }
+
+        /* ===== COLLAPSIBLE SIDEBAR ===== */
+        .sidebar {
+            width: 220px;
+            background: #242424;
+            border-right: 1px solid #333;
+            transition: width 0.3s ease;
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            border-right: none;
+        }
+
+        .sidebar-content {
+            min-width: 220px;
+            width: 220px;
+            padding: 20px;
+        }
+
+        .sidebar.collapsed .sidebar-content {
+            visibility: hidden;
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            left: 220px;
+            top: 70px;
+            width: 30px;
+            height: 40px;
+            background: #242424;
+            border: 1px solid #333;
+            border-left: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 18px;
+            z-index: 150;
+            transition: left 0.3s ease;
+        }
+
+        .sidebar.collapsed .sidebar-toggle {
+            left: 0;
+            border-left: 1px solid #333;
+        }
+
+        .sidebar-toggle:hover {
+            background: #2a2a2a;
+            color: #fff;
+        }
+
+        .sidebar h3 {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .widget-list {
+            list-style: none;
+        }
+
+        .widget-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            cursor: move;
+            transition: all 0.2s;
+        }
+
+        .widget-item:hover {
+            background: #333;
+            border-color: #444;
+        }
+
+        .widget-item:active {
+            opacity: 0.6;
+        }
+
+        /* ===== WORKSPACE ===== */
+        .workspace {
+            flex: 1;
+            display: flex;
+            background: #1a1a1a;
+            position: relative;
+        }
+
+        .panel-zone {
+            flex: 1;
+            min-height: 100%;
+            background: #1e1e1e;
+            position: relative;
+            display: flex;
+        }
+
+        .panel-zone.empty {
+            display: none !important;
+        }
+
+        .panel-zone.drop-zone-highlight {
+            background: #1e1e1e;
+        }
+
+        .panel-zone.drag-over {
+            background: #1a2a3a;
+        }
+
+        .panel-divider {
+            width: 1px;
+            background: #333;
+            cursor: col-resize;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .panel-divider:hover,
+        .panel-divider.dragging {
+            background: #4a9eff;
+            width: 2px;
+        }
+
+        .panel-divider::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -5px;
+            right: -5px;
+            bottom: 0;
+        }
+
+        .panel-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            background: #242424;
+        }
+
+        .panel-header {
+            display: flex;
+            background: #2a2a2a;
+            border-bottom: 1px solid #333;
+            min-height: 40px;
+        }
+
+        .panel-header.tab-drag-over {
+            background: #1a2a3a;
+            border-bottom: 2px solid #4a9eff;
+        }
+
+        .panel-tab {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            background: #2a2a2a;
+            border-right: 1px solid #333;
+            cursor: move;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .panel-tab.active {
+            background: #242424;
+            color: #4a9eff;
+        }
+
+        .panel-tab:hover {
+            background: #333;
+        }
+
+        .panel-tab-name {
+            margin-right: 10px;
+        }
+
+        .close-btn {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            font-size: 14px;
+            color: #888;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow: auto;
+        }
+
+        .widget-content {
+            display: none;
+            height: 100%;
+        }
+
+        .widget-content.active {
+            display: block;
+        }
+
+        /* ===== DRAG PREVIEW ===== */
+        .drag-preview {
+            position: fixed;
+            padding: 12px;
+            background: #2a2a2a;
+            border: 1px solid #4a9eff;
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.8;
+            display: none;
+        }
+
+        /* ===== MARKETS WIDGET STYLES ===== */
+        .markets-widget-content {
+            padding: 15px;
+        }
+
+        .markets-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--panel-bg);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+
+        .markets-table thead {
+            background: var(--bg-tertiary);
+        }
+
+        .markets-table th {
+            text-align: left;
+            padding: 12px 15px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+        }
+
+        .markets-table tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+        }
+
+        .markets-table tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .markets-table td {
+            padding: 14px 15px;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .port-name {
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
+
+        .badge-lta {
+            background: rgba(220, 38, 38, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+
+        .badge-spot {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+
+        .exchange-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+        }
+
+        .premium-positive {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .trade-btn {
+            background: transparent;
+            border: 2px solid #3b82f6;
+            color: #3b82f6;
+            padding: 8px 20px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .trade-btn:hover {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .sell-btn {
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        .sell-btn:hover {
+            background: #10b981;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #4a9eff;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #333;
+        }
+
+        /* ===== DRAGGABLE TRADE PANEL (500x500, NO OVERLAY) ===== */
+        .trade-panel {
+            display: none;
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 3000;
+        }
+
+        .trade-panel.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .trade-panel-header {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            padding: 15px 20px;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .trade-panel-header.sell {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .trade-panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .trade-panel-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .trade-panel-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .trade-panel-body {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .info-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+
+        .form-select {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .radio-option {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .radio-option:hover {
+            border-color: #4a9eff;
+        }
+
+        .radio-option.selected {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .radio-option input[type="radio"] {
+            display: none;
+        }
+
+        .radio-option-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .radio-option-value {
+            font-size: 13px;
+            font-weight: 700;
+            color: #10b981;
+            margin-top: 4px;
+        }
+
+        .calc-section {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .calc-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 12px;
+        }
+
+        .calc-label {
+            color: var(--text-secondary);
+        }
+
+        .calc-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .calc-row.total-row {
+            border-top: 2px solid var(--border-color);
+            margin-top: 8px;
+            padding-top: 12px;
+        }
+
+        .calc-row.total-row .calc-value {
+            color: #3b82f6;
+            font-size: 15px;
+        }
+
+        .calc-row.profit-row .calc-value {
+            color: #10b981;
+        }
+
+        .calc-row.profit-row .calc-value.negative {
+            color: #ef4444;
+        }
+
+        .execute-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 0.2s;
+            letter-spacing: 0.5px;
+        }
+
+        .execute-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .execute-btn.sell {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .warning-box {
+            font-size: 11px;
+            color: #f59e0b;
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 4px;
+            border-left: 3px solid #f59e0b;
+        }
+
+        /* ===== POSITIONS WIDGET ===== */
+        .position-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .position-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .position-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .position-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .position-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .position-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .position-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .position-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 8px 0;
+        }
+
+        /* Positions Table Styles */
+        .positions-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .positions-table thead {
+            background: var(--bg-tertiary);
+        }
+
+        .positions-table th {
+            text-align: left;
+            padding: 12px 15px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .positions-table tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+
+        .positions-table tbody tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .positions-table tbody tr.matched-row {
+            background: rgba(139, 92, 246, 0.1);
+            border-left: 3px solid #8b5cf6;
+        }
+
+        .positions-table tbody tr.matched-row:hover {
+            background: rgba(139, 92, 246, 0.15);
+        }
+
+        .positions-table td {
+            padding: 14px 15px;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .type-badge.buy {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+        }
+
+        .type-badge.sell {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+
+        .position-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .position-badge.short {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+
+        .position-badge.long {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+
+        .route {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .route-arrow {
+            color: var(--text-secondary);
+            margin: 0 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .status-arrived {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+
+        .status-transit {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+        }
+
+        .status-pending {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid #fbbf24;
+        }
+
+        .match-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .sale-info-icon {
+            font-size: 18px;
+            cursor: pointer;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        .sale-info-icon:hover {
+            transform: scale(1.2);
+        }
+
+        .sale-details-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sale-details-popup.active {
+            opacity: 1;
+        }
+
+        .sale-details-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .sale-details-header {
+            background: linear-gradient(135deg, #10b981, #059669);
+            padding: 15px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .sale-details-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sale-details-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .sale-details-body {
+            padding: 20px;
+        }
+
+        .sale-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 14px;
+        }
+
+        .sale-detail-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .sale-detail-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .sale-detail-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 10px 0;
+        }
+
+        .match-icon {
+            width: 16px;
+            height: 16px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+        }
+
+        .price-positive {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .price-negative {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .match-stats {
+            display: flex;
+            gap: 20px;
+            padding: 12px 15px;
+            background: rgba(139, 92, 246, 0.1);
+            border-left: 3px solid #8b5cf6;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .match-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .match-stat-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .match-stat-value {
+            color: #8b5cf6;
+            font-size: 16px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <!-- Fixed Header Bar -->
+    <div class="header-bar">
+        <div class="header-metric">
+            <div class="header-metric-label">Month</div>
+            <div class="header-metric-value" id="headerMonth">JAN (1/12)</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Practice Funds</div>
+            <div class="header-metric-value" id="headerFunds">$200,000</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">LOC Used</div>
+            <div class="header-metric-value" id="headerLOC">$0 / $200K</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Buying Power</div>
+            <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">LOC Interest (Next)</div>
+            <div class="header-metric-value" id="headerLOCInterest">$0</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">LME (0)</div>
+            <div class="header-metric-value" id="headerLMESpot">$8,960</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">LME (3M)</div>
+            <div class="header-metric-value" id="headerLME3M">$9,210</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">COMEX (0)</div>
+            <div class="header-metric-value" id="headerCOMEXSpot">$9,344</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">COMEX (3M)</div>
+            <div class="header-metric-value" id="headerCOMEX3M">$9,594</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Physical MT</div>
+            <div class="header-metric-value" id="headerPhysicalMT">0</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Futures MT</div>
+            <div class="header-metric-value" id="headerFuturesMT">0</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Total P&L</div>
+            <div class="header-metric-value" id="headerPL">$0</div>
+        </div>
+        <button class="next-turn-btn" onclick="advanceTurn()">NEXT TURN ▶</button>
+        <button class="theme-toggle" onclick="toggleTheme()">☀️ Light Mode</button>
+    </div>
+
+    <div class="container">
+        <!-- Collapsible Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-toggle" onclick="toggleSidebar()">◀</div>
+            <div class="sidebar-content">
+                <h3>Widgets</h3>
+                <ul class="widget-list">
+                    <li class="widget-item" draggable="true" data-widget="Markets">Markets</li>
+                    <li class="widget-item" draggable="true" data-widget="Positions">Positions</li>
+                    <li class="widget-item" draggable="true" data-widget="Calendar">Calendar</li>
+                    <li class="widget-item" draggable="true" data-widget="Futures">Futures</li>
+                    <li class="widget-item" draggable="true" data-widget="News">News</li>
+                    <li class="widget-item" draggable="true" data-widget="Active Map">Active Map</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Workspace (3-Panel Area) -->
+        <div class="workspace" id="workspace">
+            <!-- Panel A -->
+            <div class="panel-zone empty" id="panelA" data-panel="A"></div>
+            
+            <!-- Divider A-B -->
+            <div class="panel-divider" data-divider="A-B" style="display: none;"></div>
+            
+            <!-- Panel B (Markets Pre-loaded) -->
+            <div class="panel-zone" id="panelB" data-panel="B">
+                <div class="panel-container">
+                    <div class="panel-header">
+                        <div class="panel-tab active" data-widget="Markets">
+                            <span class="panel-tab-name">Markets</span>
+                            <span class="close-btn" onclick="event.stopPropagation(); closeWidget('B', 'Markets')">×</span>
+                        </div>
+                    </div>
+                    <div class="panel-content">
+                        <div class="widget-content active" data-widget="Markets">
+                            <div class="markets-widget-content">
+                                <!-- SUPPLIERS TABLE -->
+                                <div class="section-title">🔵 Suppliers - Buy Copper</div>
+                                <table class="markets-table">
+                                    <thead>
+                                        <tr>
+                                            <th>SELLER</th>
+                                            <th>AVAILABLE</th>
+                                            <th>PRICING BASIS</th>
+                                            <th>PREMIUM</th>
+                                            <th>ACTIONS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="suppliersTableBody"></tbody>
+                                </table>
+
+                                <!-- BUYERS TABLE -->
+                                <div class="section-title">🟢 Buyers - Sell Copper</div>
+                                <table class="markets-table">
+                                    <thead>
+                                        <tr>
+                                            <th>BUYER</th>
+                                            <th>DEMAND</th>
+                                            <th>PORT</th>
+                                            <th>EXCHANGE</th>
+                                            <th>QP</th>
+                                            <th>PREMIUM</th>
+                                            <th>ACTIONS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="buyersTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Divider B-C -->
+            <div class="panel-divider" data-divider="B-C" style="display: none;"></div>
+            
+            <!-- Panel C -->
+            <div class="panel-zone empty" id="panelC" data-panel="C"></div>
+        </div>
+    </div>
+
+    <!-- Drag Preview Tooltip -->
+    <div class="drag-preview" id="dragPreview"></div>
+
+    <!-- Buy Panel (500x500, Draggable, No Overlay) -->
+    <div class="trade-panel" id="buyPanel">
+        <div class="trade-panel-header" id="buyPanelHeader">
+            <span class="trade-panel-title">Buy Copper</span>
+            <button class="trade-panel-close" onclick="TradePanel.close()">×</button>
+        </div>
+        <div class="trade-panel-body">
+            <div class="info-box">
+                <div class="info-row">
+                    <span class="info-label">SUPPLIER</span>
+                    <span class="info-value" id="buySupplier">CALLAO</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">PORT</span>
+                    <span class="info-value" id="buyPort">Callao, Peru</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">PRICING BASIS</span>
+                    <span class="info-value" id="buyBasis">LME M+1</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">SUPPLIER PREMIUM</span>
+                    <span class="info-value" id="buyPremium">+$15/MT</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tonnage (MT)</label>
+                <input type="number" class="form-input" id="buyTonnage" min="5" value="5" oninput="TradePanel.calculateBuy()">
+                <div style="font-size: 11px; color: #888; margin-top: 6px;" id="buyRange">Range: 5 - 17 MT</div>
+            </div>
+
+            <div class="form-group" id="buyExchangeGroup">
+                <label class="form-label">Exchange</label>
+                <div class="radio-group">
+                    <label class="radio-option selected" onclick="TradePanel.selectExchange('LME')">
+                        <input type="radio" name="exchange" value="LME" checked>
+                        <div class="radio-option-label">LME M+1</div>
+                    </label>
+                    <label class="radio-option" onclick="TradePanel.selectExchange('COMEX')">
+                        <input type="radio" name="exchange" value="COMEX">
+                        <div class="radio-option-label">COMEX M+1</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Destination Port</label>
+                <select class="form-select" id="buyDestination" onchange="TradePanel.calculateBuy()">
+                    <option value="">Select destination...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Shipping Terms</label>
+                <div class="radio-group">
+                    <label class="radio-option selected" id="fobOption" onclick="TradePanel.selectShipping('FOB')">
+                        <input type="radio" name="shippingTerms" value="FOB" checked>
+                        <div class="radio-option-label">FOB</div>
+                        <div class="radio-option-value" id="fobPriceDisplay">$9039/MT</div>
+                    </label>
+                    <label class="radio-option" id="cifOption" onclick="TradePanel.selectShipping('CIF')">
+                        <input type="radio" name="shippingTerms" value="CIF">
+                        <div class="radio-option-label">CIF</div>
+                        <div class="radio-option-value" id="cifPriceDisplay">$9070/MT</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-title">Cost Breakdown (Estimated)</div>
+                <div class="calc-row">
+                    <span class="calc-label">Base Price (Spot):</span>
+                    <span class="calc-value" id="buyBasePrice">$8960/MT</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Supplier Premium:</span>
+                    <span class="calc-value" id="buySupplierPremium">+$15/MT</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Freight Cost:</span>
+                    <span class="calc-value" id="buyFreight">$64/MT (FOB)</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Price/MT:</span>
+                    <span class="calc-value" id="buyPricePerMT">$9039/MT</span>
+                </div>
+                <div class="calc-row total-row">
+                    <span class="calc-label">Total Cost:</span>
+                    <span class="calc-value" id="buyTotalCost">$45,195</span>
+                </div>
+                <div class="warning-box">
+                    ⚠️ <span id="buyQPWarning">QP settlement in March based on February average</span>
+                </div>
+            </div>
+
+            <button class="execute-btn" onclick="TradePanel.executeBuy()">PURCHASE COPPER</button>
+        </div>
+    </div>
+
+    <!-- Sell Panel (500x500, Draggable, No Overlay) -->
+    <div class="trade-panel" id="sellPanel">
+        <div class="trade-panel-header sell" id="sellPanelHeader">
+            <span class="trade-panel-title">Sell Copper</span>
+            <button class="trade-panel-close" onclick="TradePanel.close()">×</button>
+        </div>
+        <div class="trade-panel-body">
+            <div class="info-box">
+                <div class="info-row">
+                    <span class="info-label">BUYER</span>
+                    <span class="info-value" id="sellBuyer">AMERICAS</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">DESTINATION</span>
+                    <span class="info-value" id="sellDest">New Orleans, USA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">EXCHANGE</span>
+                    <span class="info-value" id="sellExchange">COMEX</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">REGIONAL PREMIUM</span>
+                    <span class="info-value" id="sellPremium">+$50/MT</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Select Inventory</label>
+                <select class="form-select" id="sellInventory" onchange="TradePanel.calculateSell()">
+                    <option value="none">-- No inventory available --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tonnage (MT)</label>
+                <input type="number" class="form-input" id="sellTonnage" min="10" value="20" oninput="TradePanel.calculateSell()">
+                <div style="font-size: 11px; color: #888; margin-top: 6px;" id="sellRange">Range: 20 - 85 MT</div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-title">Revenue Breakdown (Estimated)</div>
+                <div class="calc-row">
+                    <span class="calc-label">Base Price (Spot):</span>
+                    <span class="calc-value" id="sellBasePrice">$8960/MT</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Regional Premium:</span>
+                    <span class="calc-value" id="sellRegionalPremium">+$90/MT</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Sale Price:</span>
+                    <span class="calc-value" id="sellPricePerMT">$9050/MT</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Total Revenue:</span>
+                    <span class="calc-value" id="sellTotalRevenue">$181,000</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-label">Original Cost:</span>
+                    <span class="calc-value" id="sellOriginalCost">$180,780</span>
+                </div>
+                <div class="calc-row total-row profit-row">
+                    <span class="calc-label">Estimated Profit:</span>
+                    <span class="calc-value" id="sellNetProfit">+$220</span>
+                </div>
+                <div class="warning-box">
+                    ⚠️ <span id="sellQPWarning">QP settlement in March based on February average</span>
+                </div>
+            </div>
+
+            <button class="execute-btn sell" onclick="TradePanel.executeSell()">SELL COPPER</button>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================
+           GAME STATE MANAGEMENT
+           ========================================== */
+        
+        const GAME_STATE = {
+            currentTurn: 1,
+            currentMonth: 'January',
+            currentMonthData: null,
+            practiceFunds: 200000,
+            locUsed: 0,
+            locLimit: 200000,
+            locInterestNextMonth: 0,
+            physicalPositions: [],
+            futuresPositions: [],
+            totalPL: 0,
+            
+            // Track monthly purchases/sales
+            monthlyPurchases: {
+                CALLAO_LTA: 0,
+                CALLAO_SPOT: 0,
+                ANTOFAGASTA_SPOT: 0
+            },
+            monthlySales: {
+                AMERICAS: 0,
+                ASIA: 0,
+                EUROPE: 0
+            },
+            
+            init() {
+                this.currentMonthData = JANUARY_DATA;
+                this.updateHeader();
+            },
+            
+            resetMonthlyLimits() {
+                this.monthlyPurchases = {
+                    CALLAO_LTA: 0,
+                    CALLAO_SPOT: 0,
+                    ANTOFAGASTA_SPOT: 0
+                };
+                this.monthlySales = {
+                    AMERICAS: 0,
+                    ASIA: 0,
+                    EUROPE: 0
+                };
+            },
+            
+            calculateMonthlyInterest() {
+                // Interest only on LOC used, at 4.32% annual (0.36% monthly)
+                const monthlyRate = 0.0036;
+                this.locInterestNextMonth = this.locUsed * monthlyRate;
+            },
+            
+            purchaseCopper(supplier, tonnage, costPerMT, totalCost, isLTA, exchange, shippingTerms, destination) {
+                // Use practice funds first, then LOC
+                let amountFromFunds = Math.min(this.practiceFunds, totalCost);
+                let amountFromLOC = totalCost - amountFromFunds;
+                
+                this.practiceFunds -= amountFromFunds;
+                this.locUsed += amountFromLOC;
+                
+                // Calculate interest for next month
+                this.calculateMonthlyInterest();
+                
+                // Create position
+                const freightData = this.currentMonthData.LOGISTICS.FREIGHT_RATES[supplier.toUpperCase()][destination];
+                const position = {
+                    id: `POS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'PHYSICAL',
+                    supplier: supplier,
+                    originPort: supplier === 'CALLAO' ? 'Callao, Peru' : 'Antofagasta, Chile',
+                    destinationPort: freightData.PORT_NAME + ', ' + freightData.COUNTRY,
+                    tonnage: tonnage,
+                    costPerMT: costPerMT,
+                    totalCost: totalCost,
+                    paidFromFunds: amountFromFunds,
+                    paidFromLOC: amountFromLOC,
+                    exchange: exchange,
+                    shippingTerms: shippingTerms,
+                    purchaseMonth: this.currentMonth,
+                    purchaseTurn: this.currentTurn,
+                    isLTA: isLTA,
+                    travelTimeDays: freightData.TRAVEL_TIME_DAYS,
+                    distanceNM: freightData.DISTANCE_NM,
+                    arrivalTurn: this.currentTurn + Math.ceil(freightData.TRAVEL_TIME_DAYS / 30),
+                    status: 'IN_TRANSIT'
+                };
+                
+                this.physicalPositions.push(position);
+                this.recordPurchase(supplier, tonnage, isLTA);
+                
+                return position;
+            },
+            
+            sellCopper(inventoryIndex, tonnage, region, salePrice, totalRevenue) {
+                const position = this.physicalPositions[inventoryIndex];
+                
+                // Mark position as sold but don't settle yet
+                if (!position.soldInfo) {
+                    position.soldInfo = {
+                        region: region,
+                        tonnage: tonnage,
+                        salePrice: salePrice,
+                        totalRevenue: totalRevenue,
+                        soldTurn: this.currentTurn,
+                        settlementTurn: position.purchaseTurn + 2 // Settles 2 turns after purchase
+                    };
+                    position.status = 'SOLD_PENDING_SETTLEMENT';
+                }
+                
+                this.recordSale(region, tonnage);
+                
+                return 0; // Return 0 profit until settlement
+            },
+            
+            canPurchase(supplier, tonnage) {
+                const data = this.currentMonthData;
+                
+                if (supplier === 'CALLAO' && this.currentTrade && this.currentTrade.isLTA) {
+                    const limit = data.MARKET_DEPTH.SUPPLY.PERUVIAN.LTA_FIXED_MT;
+                    const remaining = limit - this.monthlyPurchases.CALLAO_LTA;
+                    return {
+                        canBuy: remaining >= tonnage,
+                        remaining: remaining,
+                        message: remaining < tonnage ? `Only ${remaining}MT remaining for Callao LTA this month` : null
+                    };
+                } else if (supplier === 'CALLAO') {
+                    const limit = data.MARKET_DEPTH.SUPPLY.PERUVIAN.MAX_OPTIONAL_SPOT_MT;
+                    const remaining = limit - this.monthlyPurchases.CALLAO_SPOT;
+                    return {
+                        canBuy: remaining >= tonnage,
+                        remaining: remaining,
+                        message: remaining < tonnage ? `Only ${remaining}MT remaining for Callao Spot this month` : null
+                    };
+                } else if (supplier === 'ANTOFAGASTA') {
+                    const limit = data.MARKET_DEPTH.SUPPLY.CHILEAN.MAX_AVAILABLE_MT;
+                    const remaining = limit - this.monthlyPurchases.ANTOFAGASTA_SPOT;
+                    return {
+                        canBuy: remaining >= tonnage,
+                        remaining: remaining,
+                        message: remaining < tonnage ? `Only ${remaining}MT remaining for Antofagasta this month` : null
+                    };
+                }
+                
+                return { canBuy: true, remaining: 999, message: null };
+            },
+            
+            canSell(region, tonnage) {
+                const data = this.currentMonthData;
+                const opportunity = data.CLIENTS.OPPORTUNITIES.find(o => o.REGION === region);
+                
+                if (!opportunity) return { canSell: false, remaining: 0, message: 'Region not found' };
+                
+                const limit = opportunity.MAX_QUANTITY_MT;
+                const remaining = limit - (this.monthlySales[region] || 0);
+                
+                return {
+                    canSell: remaining >= tonnage,
+                    remaining: remaining,
+                    message: remaining < tonnage ? `Only ${remaining}MT remaining for ${region} this month` : null
+                };
+            },
+            
+            recordPurchase(supplier, tonnage, isLTA) {
+                if (supplier === 'CALLAO' && isLTA) {
+                    this.monthlyPurchases.CALLAO_LTA += tonnage;
+                } else if (supplier === 'CALLAO') {
+                    this.monthlyPurchases.CALLAO_SPOT += tonnage;
+                } else if (supplier === 'ANTOFAGASTA') {
+                    this.monthlyPurchases.ANTOFAGASTA_SPOT += tonnage;
+                }
+            },
+            
+            recordSale(region, tonnage) {
+                this.monthlySales[region] = (this.monthlySales[region] || 0) + tonnage;
+            },
+            
+            updatePositionStatus(turn) {
+                this.physicalPositions.forEach(pos => {
+                    if (pos.status === 'IN_TRANSIT' && turn >= pos.arrivalTurn) {
+                        pos.status = 'ARRIVED';
+                    }
+                });
+            },
+            
+            processSettlements(newTurn) {
+                const settledPositions = [];
+                
+                // Find positions that should settle this turn
+                this.physicalPositions = this.physicalPositions.filter(pos => {
+                    if (pos.soldInfo && newTurn >= pos.soldInfo.settlementTurn) {
+                        // Settle the position
+                        const cost = pos.costPerMT * pos.soldInfo.tonnage;
+                        const profit = pos.soldInfo.totalRevenue - cost;
+                        
+                        // Return LOC first, then add to funds
+                        const returnToLOC = Math.min(pos.paidFromLOC * (pos.soldInfo.tonnage / pos.tonnage), this.locUsed);
+                        const returnToFunds = pos.soldInfo.totalRevenue - returnToLOC;
+                        
+                        this.locUsed -= returnToLOC;
+                        this.practiceFunds += returnToFunds;
+                        this.totalPL += profit;
+                        
+                        settledPositions.push({
+                            ...pos,
+                            profit: profit
+                        });
+                        
+                        this.calculateMonthlyInterest();
+                        
+                        // Remove this position from active positions
+                        return false;
+                    }
+                    return true; // Keep positions that haven't settled
+                });
+                
+                return settledPositions;
+            },
+            
+            updateHeader() {
+                const data = this.currentMonthData;
+                document.getElementById('headerMonth').textContent = `${this.currentMonth.toUpperCase()} (${this.currentTurn}/12)`;
+                document.getElementById('headerFunds').textContent = `$${Math.round(this.practiceFunds).toLocaleString('en-US')}`;
+                document.getElementById('headerLOC').textContent = `$${Math.round(this.locUsed).toLocaleString('en-US')} / $${this.locLimit.toLocaleString('en-US')}`;
+                document.getElementById('headerBuyingPower').textContent = `$${Math.round(this.practiceFunds + (this.locLimit - this.locUsed)).toLocaleString('en-US')}`;
+                document.getElementById('headerLOCInterest').textContent = `$${Math.round(this.locInterestNextMonth).toLocaleString('en-US')}`;
+                document.getElementById('headerLMESpot').textContent = `$${data.PRICING.LME.SPOT_AVG.toLocaleString('en-US')}`;
+                document.getElementById('headerLME3M').textContent = `$${data.PRICING.LME.FUTURES_3M.toLocaleString('en-US')}`;
+                document.getElementById('headerCOMEXSpot').textContent = `$${data.PRICING.COMEX.SPOT_AVG.toLocaleString('en-US')}`;
+                document.getElementById('headerCOMEX3M').textContent = `$${data.PRICING.COMEX.FUTURES_3M.toLocaleString('en-US')}`;
+                
+                const totalPhysicalMT = this.physicalPositions.reduce((sum, pos) => sum + pos.tonnage, 0);
+                const totalFuturesMT = this.futuresPositions.reduce((sum, pos) => sum + pos.tonnage, 0);
+                document.getElementById('headerPhysicalMT').textContent = totalPhysicalMT.toFixed(1);
+                document.getElementById('headerFuturesMT').textContent = totalFuturesMT.toFixed(1);
+                document.getElementById('headerPL').textContent = `$${Math.round(this.totalPL).toLocaleString('en-US')}`;
+            }
+        };
+        
+        /* ==========================================
+           STATE MANAGEMENT (DRAG & DROP)
+           ========================================== */
+        
+        const panelState = {
+            A: [],
+            B: ['Markets'],
+            C: []
+        };
+
+        const panelFlexValues = {
+            A: 0,
+            B: 1,
+            C: 0
+        };
+
+        let draggedWidget = null;
+        let draggedTab = null;
+        let resizingDivider = null;
+        let resizeStartX = 0;
+        let resizeStartData = {};
+
+        /* ==========================================
+           MARKETS WIDGET MODULE
+           ========================================== */
+        
+        const MarketsWidget = {
+            init() {
+                if (!GAME_STATE.currentMonthData) {
+                    console.error('No month data loaded');
+                    return;
+                }
+                this.populateSuppliersTable();
+                this.populateBuyersTable();
+            },
+
+            populateSuppliersTable() {
+                const monthData = GAME_STATE.currentMonthData;
+                const tbody = document.getElementById('suppliersTableBody');
+                if (!tbody) return;
+                
+                const peruvianData = monthData.MARKET_DEPTH.SUPPLY.PERUVIAN;
+                const chileanData = monthData.MARKET_DEPTH.SUPPLY.CHILEAN;
+                
+                // Calculate remaining availability
+                const ltaRemaining = peruvianData.LTA_FIXED_MT - GAME_STATE.monthlyPurchases.CALLAO_LTA;
+                const spotRemaining = peruvianData.MAX_OPTIONAL_SPOT_MT - GAME_STATE.monthlyPurchases.CALLAO_SPOT;
+                const chileanRemaining = chileanData.MAX_AVAILABLE_MT - GAME_STATE.monthlyPurchases.ANTOFAGASTA_SPOT;
+                
+                tbody.innerHTML = `
+                    <tr>
+                        <td><span class="port-name">CALLAO</span><span class="badge badge-lta">LTA</span></td>
+                        <td>${ltaRemaining} MT REMAINING ${ltaRemaining === 0 ? '(SOLD OUT)' : ''}</td>
+                        <td>LME M+1</td>
+                        <td class="premium-positive">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</td>
+                        <td><button class="trade-btn" ${ltaRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="TradePanel.openBuy('CALLAO', 'Callao, Peru', ${peruvianData.LTA_FIXED_MT}, ${peruvianData.LTA_FIXED_MT}, 'LME', ${peruvianData.SUPPLIER_PREMIUM_USD}, true)">TRADE</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="port-name">CALLAO</span><span class="badge badge-spot">SPOT</span></td>
+                        <td>${peruvianData.LTA_FIXED_MT}–${spotRemaining} MT ${spotRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}</td>
+                        <td>LME / COMEX M+1</td>
+                        <td class="premium-positive">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</td>
+                        <td><button class="trade-btn" ${spotRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="TradePanel.openBuy('CALLAO', 'Callao, Peru', ${peruvianData.LTA_FIXED_MT}, ${spotRemaining}, 'LME_COMEX', ${peruvianData.SUPPLIER_PREMIUM_USD}, false)">TRADE</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="port-name">ANTOFAGASTA</span><span class="badge badge-spot">SPOT</span></td>
+                        <td>${chileanData.MIN_AVAILABLE_MT}–${chileanRemaining} MT ${chileanRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}</td>
+                        <td>LME / COMEX M+1</td>
+                        <td>$${chileanData.SUPPLIER_PREMIUM_USD}/MT</td>
+                        <td><button class="trade-btn" ${chileanRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="TradePanel.openBuy('ANTOFAGASTA', 'Antofagasta, Chile', ${chileanData.MIN_AVAILABLE_MT}, ${chileanRemaining}, 'LME_COMEX', ${chileanData.SUPPLIER_PREMIUM_USD}, false)">TRADE</button></td>
+                    </tr>
+                `;
+            },
+
+            populateBuyersTable() {
+                const monthData = GAME_STATE.currentMonthData;
+                const tbody = document.getElementById('buyersTableBody');
+                if (!tbody) return;
+                
+                tbody.innerHTML = monthData.CLIENTS.OPPORTUNITIES.map(buyer => {
+                    const remaining = buyer.MAX_QUANTITY_MT - (GAME_STATE.monthlySales[buyer.REGION] || 0);
+                    const soldOut = remaining === 0;
+                    
+                    return `
+                        <tr>
+                            <td><span class="port-name">${buyer.REGION}</span></td>
+                            <td>${buyer.MIN_QUANTITY_MT}–${remaining} MT ${soldOut ? '(SOLD OUT)' : 'REMAINING'}</td>
+                            <td>${buyer.PORT_OF_DISCHARGE}</td>
+                            <td><span class="exchange-badge">${buyer.REFERENCE_EXCHANGE}</span></td>
+                            <td><span class="exchange-badge" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: #fbbf24;">M+1</span></td>
+                            <td class="premium-positive">+$${buyer.REGIONAL_PREMIUM_USD}/MT</td>
+                            <td><button class="trade-btn sell-btn" ${soldOut ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="TradePanel.openSell('${buyer.REGION}', '${buyer.PORT_OF_DISCHARGE}', ${buyer.MIN_QUANTITY_MT}, ${remaining}, '${buyer.REFERENCE_EXCHANGE}', ${buyer.REGIONAL_PREMIUM_USD})">TRADE</button></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        };
+
+        /* ==========================================
+           POSITIONS WIDGET
+           ========================================== */
+        
+        const PositionsWidget = {
+            positions: [],
+
+            init() {
+                this.loadPositionsFromGameState();
+                this.render();
+            },
+
+            loadPositionsFromGameState() {
+                const combined = [];
+                
+                if (GAME_STATE.physicalPositions) {
+                    GAME_STATE.physicalPositions.forEach((pos, idx) => {
+                        const turnsRemaining = pos.arrivalTurn - GAME_STATE.currentTurn;
+                        const daysRemaining = Math.max(0, turnsRemaining * 30); // Rough estimate: 30 days per turn
+                        
+                        combined.push({
+                            id: `BUY_${idx}`,
+                            type: 'BUY',
+                            loading: pos.originPort,
+                            destination: pos.destinationPort || 'Unknown',
+                            tonnage: pos.tonnage,
+                            price: pos.costPerMT,
+                            qp: 'M+1',
+                            eta: daysRemaining,
+                            etaDays: daysRemaining,
+                            arrival: pos.status === 'ARRIVED' ? 'Arrived' : 
+                                     pos.status === 'SOLD_PENDING_SETTLEMENT' ? 'Pending Settlement' : 'In Transit',
+                            matchId: null,
+                            soldInfo: pos.soldInfo
+                        });
+                    });
+                }
+
+                if (GAME_STATE.salesPositions) {
+                    GAME_STATE.salesPositions.forEach((pos, idx) => {
+                        combined.push({
+                            id: `SELL_${idx}`,
+                            type: 'SELL',
+                            loading: 'N/A',
+                            destination: pos.destinationPort,
+                            tonnage: pos.tonnage,
+                            price: pos.pricePerMT,
+                            qp: 'M+1',
+                            eta: pos.arrivalTurn - GAME_STATE.currentTurn,
+                            arrival: pos.status === 'ARRIVED' ? 'Arrived' : 'In Transit',
+                            matchId: null
+                        });
+                    });
+                }
+
+                this.positions = combined;
+            },
+
+            getSortedPositions() {
+                const matched = this.positions.filter(p => p.matchId !== null);
+                const unmatched = this.positions.filter(p => p.matchId === null);
+
+                const matchGroups = {};
+                matched.forEach(pos => {
+                    if (!matchGroups[pos.matchId]) matchGroups[pos.matchId] = [];
+                    matchGroups[pos.matchId].push(pos);
+                });
+
+                const sortedMatched = [];
+                Object.keys(matchGroups).sort((a, b) => parseInt(a) - parseInt(b)).forEach(matchId => {
+                    const group = matchGroups[matchId];
+                    const buy = group.find(p => p.type === 'BUY');
+                    const sell = group.find(p => p.type === 'SELL');
+                    
+                    if (buy) sortedMatched.push(buy);
+                    if (sell) sortedMatched.push(sell);
+                    sortedMatched.push({ separator: true, matchId: matchId });
+                });
+
+                if (sortedMatched.length > 0 && sortedMatched[sortedMatched.length - 1].separator) {
+                    sortedMatched.pop();
+                }
+
+                const unmatchedBuys = unmatched.filter(p => p.type === 'BUY');
+                const unmatchedSells = unmatched.filter(p => p.type === 'SELL');
+                
+                return [...sortedMatched, ...unmatchedBuys, ...unmatchedSells];
+            },
+            
+            render() {
+                const container = document.getElementById('positionsContainer');
+                if (!container) return;
+                
+                if (this.positions.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 60px; color: #666;"><div style="font-size: 48px; margin-bottom: 20px; opacity: 0.3;">📭</div><div style="font-size: 14px;">No active positions</div></div>';
+                    return;
+                }
+
+                this.autoMatchByDestination();
+                const sortedPositions = this.getSortedPositions();
+
+                let html = `
+                    <div style="font-size: 13px; font-weight: 700; color: #4a9eff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px;">📦 CURRENT POSITIONS</div>
+                    <div id="matchStats" style="display: none;"></div>
+                    <table class="positions-table">
+                        <thead>
+                            <tr>
+                                <th>TYPE</th>
+                                <th>ROUTE</th>
+                                <th>TONNAGE</th>
+                                <th>PRICE (INVOICE)</th>
+                                <th>QP</th>
+                                <th>ETA</th>
+                                <th>PROJECTED P&L</th>
+                                <th>STATUS</th>
+                                <th>MATCH</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                sortedPositions.forEach(pos => {
+                    if (pos.separator) {
+                        html += `<tr class="separator-row"><td colspan="8" style="padding: 0; height: 8px; background: transparent; border: none;"></td></tr>`;
+                        return;
+                    }
+
+                    const statusClass = pos.arrival === 'Arrived' ? 'status-arrived' : 
+                                       pos.arrival === 'Pending Settlement' ? 'status-pending' : 'status-transit';
+                    const isMatched = pos.matchId !== null;
+                    const rowClass = isMatched ? 'matched-row' : '';
+                    
+                    // Calculate sale details if sold
+                    let matchCell = '—';
+                    if (pos.soldInfo) {
+                        const profit = pos.soldInfo.totalRevenue - (pos.price * pos.soldInfo.tonnage);
+                        matchCell = `
+                            <div class="sale-info-icon" onclick="showSaleDetails(${JSON.stringify(pos.soldInfo).replace(/"/g, '&quot;')}, ${pos.price}, '${pos.id}')">
+                                📋
+                            </div>
+                        `;
+                    } else if (isMatched) {
+                        matchCell = `<div class="match-indicator"><span class="match-icon">✓</span><span>Match #${pos.matchId}</span></div>`;
+                    }
+                    
+                    // Determine if this position has been sold
+                    const hasSale = pos.soldInfo !== undefined;
+                    
+                    const totalInvoice = pos.tonnage * pos.price;
+                    const invoiceEquation = `${pos.tonnage} MT × $${Math.round(pos.price).toLocaleString('en-US')}/MT = $${Math.round(totalInvoice).toLocaleString('en-US')}`;
+                    
+                    // Calculate projected P&L per ton if sold
+                    let projectedPL = '—';
+                    let plClass = '';
+                    if (pos.soldInfo) {
+                        const totalCost = pos.price * pos.soldInfo.tonnage;
+                        const profit = pos.soldInfo.totalRevenue - totalCost;
+                        const profitPerTon = profit / pos.soldInfo.tonnage;
+                        projectedPL = (profitPerTon >= 0 ? '+' : '') + `$${Math.round(profitPerTon).toLocaleString('en-US')}/MT`;
+                        plClass = profitPerTon >= 0 ? 'price-positive' : 'price-negative';
+                    }
+                    
+                    html += `
+                        <tr class="${rowClass}">
+                            <td>
+                                ${hasSale ? 
+                                    `<div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                                        <span class="type-badge buy">BUY</span>
+                                        <span class="type-badge sell">SELL</span>
+                                    </div>` 
+                                    : 
+                                    `<span class="type-badge ${pos.type.toLowerCase()}">${pos.type}</span>`
+                                }
+                            </td>
+                            <td><span class="route">${pos.loading}<span class="route-arrow">→</span>${pos.destination}</span></td>
+                            <td>${pos.tonnage} MT</td>
+                            <td class="${pos.type === 'BUY' ? 'price-negative' : 'price-positive'}" title="${invoiceEquation}">
+                                ${pos.type === 'BUY' ? '-' : '+'}$${Math.round(totalInvoice).toLocaleString('en-US')}
+                                <div style="font-size: 10px; color: #888; margin-top: 2px;">$${Math.round(pos.price).toLocaleString('en-US')}/MT</div>
+                            </td>
+                            <td>${pos.qp}</td>
+                            <td>${pos.eta > 0 ? `${pos.eta} days` : 'Delivered'}</td>
+                            <td class="${plClass}" style="font-weight: 700;">${projectedPL}</td>
+                            <td><span class="status-badge ${statusClass}">${pos.arrival}</span></td>
+                            <td>${matchCell}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+                this.renderMatchStats();
+                this.renderFutures();
+            },
+
+            renderMatchStats() {
+                const statsDiv = document.getElementById('matchStats');
+                if (!statsDiv) return;
+
+                const matchCount = new Set(this.positions.filter(p => p.matchId).map(p => p.matchId)).size;
+                const matchedPositions = this.positions.filter(p => p.matchId).length;
+                const totalPositions = this.positions.length;
+
+                if (matchCount > 0) {
+                    statsDiv.style.display = 'flex';
+                    statsDiv.className = 'match-stats';
+                    statsDiv.innerHTML = `
+                        <div class="match-stat"><div class="match-stat-label">Matched Pairs</div><div class="match-stat-value">${matchCount}</div></div>
+                        <div class="match-stat"><div class="match-stat-label">Matched Positions</div><div class="match-stat-value">${matchedPositions} / ${totalPositions}</div></div>
+                        <div class="match-stat"><div class="match-stat-label">Coverage</div><div class="match-stat-value">${Math.round((matchedPositions / totalPositions) * 100)}%</div></div>
+                    `;
+                } else {
+                    statsDiv.style.display = 'none';
+                }
+            },
+
+            renderFutures() {
+                const container = document.getElementById('positionsContainer');
+                if (!container) return;
+
+                const futuresHTML = `
+                    <div style="margin-top: 30px;">
+                        <div style="font-size: 13px; font-weight: 700; color: #4a9eff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px;">📊 FUTURES POSITIONS</div>
+                        <table class="positions-table">
+                            <thead>
+                                <tr>
+                                    <th>EXCHANGE</th>
+                                    <th>CONTRACT</th>
+                                    <th>POSITION</th>
+                                    <th>CONTRACT AMOUNT</th>
+                                    <th>VALUE OF CONTRACTS</th>
+                                    <th>MARGIN</th>
+                                </tr>
+                            </thead>
+                            <tbody>${this.renderFuturesRows()}</tbody>
+                        </table>
+                    </div>
+                `;
+                
+                container.innerHTML += futuresHTML;
+            },
+
+            renderFuturesRows() {
+                if (!GAME_STATE.futuresPositions || GAME_STATE.futuresPositions.length === 0) {
+                    return '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #666;">No futures positions</td></tr>';
+                }
+
+                return GAME_STATE.futuresPositions.map(future => {
+                    const posClass = future.position.toLowerCase();
+                    return `
+                        <tr>
+                            <td><strong>${future.exchange}</strong></td>
+                            <td>${future.contract}</td>
+                            <td><span class="position-badge ${posClass}">${future.position}</span></td>
+                            <td>${future.contractAmount} (${future.contractAmount * 25} MT)</td>
+                            <td class="${posClass === 'short' ? 'price-negative' : 'price-positive'}">
+                                ${posClass === 'short' ? '-' : '+'}$${future.value.toLocaleString('en-US')}
+                            </td>
+                            <td>$${future.margin.toLocaleString('en-US')}</td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            autoMatchByDestination() {
+                this.positions.forEach(pos => pos.matchId = null);
+                
+                const buys = this.positions.filter(p => p.type === 'BUY');
+                const sells = this.positions.filter(p => p.type === 'SELL');
+                
+                let matchCounter = 1;
+                const matched = new Set();
+
+                buys.forEach(buy => {
+                    if (matched.has(buy.id)) return;
+
+                    const matchingSell = sells.find(sell => 
+                        !matched.has(sell.id) && 
+                        sell.destination === buy.destination
+                    );
+
+                    if (matchingSell) {
+                        buy.matchId = matchCounter;
+                        matchingSell.matchId = matchCounter;
+                        matched.add(buy.id);
+                        matched.add(matchingSell.id);
+                        matchCounter++;
+                    }
+                });
+            }
+        };
+
+        /* ==========================================
+           DRAGGABLE TRADE PANEL (NO OVERLAY BLOCKING)
+           ========================================== */
+        
+        const TradePanel = {
+            currentTrade: {},
+            isDragging: false,
+            dragOffsetX: 0,
+            dragOffsetY: 0,
+            
+            init() {
+                const buyHeader = document.getElementById('buyPanelHeader');
+                const sellHeader = document.getElementById('sellPanelHeader');
+                
+                buyHeader.addEventListener('mousedown', (e) => this.startDrag(e, 'buyPanel'));
+                sellHeader.addEventListener('mousedown', (e) => this.startDrag(e, 'sellPanel'));
+                
+                document.addEventListener('mousemove', (e) => this.drag(e));
+                document.addEventListener('mouseup', () => this.stopDrag());
+            },
+            
+            startDrag(e, panelId) {
+                if (e.target.classList.contains('trade-panel-close')) return;
+                
+                this.isDragging = true;
+                this.dragPanel = document.getElementById(panelId);
+                
+                const rect = this.dragPanel.getBoundingClientRect();
+                this.dragOffsetX = e.clientX - rect.left;
+                this.dragOffsetY = e.clientY - rect.top;
+            },
+            
+            drag(e) {
+                if (!this.isDragging) return;
+                
+                const x = e.clientX - this.dragOffsetX;
+                const y = e.clientY - this.dragOffsetY;
+                
+                this.dragPanel.style.left = `${x}px`;
+                this.dragPanel.style.top = `${y}px`;
+            },
+            
+            stopDrag() {
+                this.isDragging = false;
+            },
+            
+            openBuy(supplier, port, minMT, maxMT, basis, premium, isLTA) {
+                this.currentTrade = { type: 'BUY', supplier, port, minMT, maxMT, basis, premium, isLTA };
+                
+                document.getElementById('buySupplier').textContent = supplier;
+                document.getElementById('buyPort').textContent = port;
+                document.getElementById('buyBasis').textContent = basis.replace('_', ' / ') + ' M+1';
+                document.getElementById('buyPremium').textContent = premium > 0 ? `+$${premium}/MT` : '$0/MT';
+                document.getElementById('buyRange').textContent = `Range: ${minMT} - ${maxMT} MT`;
+                document.getElementById('buyTonnage').min = minMT;
+                document.getElementById('buyTonnage').max = maxMT;
+                document.getElementById('buyTonnage').value = minMT;
+                
+                document.getElementById('buyExchangeGroup').style.display = isLTA ? 'none' : 'block';
+                
+                this.populateDestinations(supplier);
+                this.centerPanel('buyPanel');
+                document.getElementById('buyPanel').classList.add('active');
+                this.calculateBuy();
+            },
+            
+            openSell(buyer, dest, minMT, maxMT, exchange, premium) {
+                this.currentTrade = { type: 'SELL', buyer, dest, minMT, maxMT, exchange, premium };
+                
+                document.getElementById('sellBuyer').textContent = buyer;
+                document.getElementById('sellDest').textContent = dest;
+                document.getElementById('sellExchange').textContent = exchange;
+                document.getElementById('sellPremium').textContent = `+$${premium}/MT`;
+                document.getElementById('sellRange').textContent = `Range: ${minMT} - ${maxMT} MT`;
+                document.getElementById('sellTonnage').min = minMT;
+                document.getElementById('sellTonnage').max = maxMT;
+                document.getElementById('sellTonnage').value = minMT;
+                
+                this.populateInventory();
+                this.centerPanel('sellPanel');
+                document.getElementById('sellPanel').classList.add('active');
+                this.calculateSell();
+            },
+            
+            close() {
+                document.getElementById('buyPanel').classList.remove('active');
+                document.getElementById('sellPanel').classList.remove('active');
+            },
+            
+            centerPanel(panelId) {
+                const panel = document.getElementById(panelId);
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                
+                panel.style.left = `${(windowWidth - 500) / 2}px`;
+                panel.style.top = `${(windowHeight - 500) / 2}px`;
+            },
+            
+            selectExchange(exchange) {
+                document.querySelectorAll('#buyExchangeGroup .radio-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                event.currentTarget.classList.add('selected');
+                document.querySelector(`input[name="exchange"][value="${exchange}"]`).checked = true;
+                this.calculateBuy();
+            },
+            
+            selectShipping(terms) {
+                document.querySelectorAll('[id$="Option"]').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                document.getElementById(terms.toLowerCase() + 'Option').classList.add('selected');
+                document.querySelector(`input[name="shippingTerms"][value="${terms}"]`).checked = true;
+                this.calculateBuy();
+            },
+            
+            populateDestinations(supplier) {
+                const monthData = GAME_STATE.currentMonthData;
+                const select = document.getElementById('buyDestination');
+                
+                const originKey = supplier.toUpperCase();
+                const freightData = monthData.LOGISTICS.FREIGHT_RATES[originKey];
+                
+                if (!freightData) {
+                    select.innerHTML = '<option value="">No routes available</option>';
+                    return;
+                }
+                
+                const destinations = Object.keys(freightData).map(key => {
+                    const route = freightData[key];
+                    return `<option value="${key}">${route.PORT_NAME}, ${route.COUNTRY}</option>`;
+                }).join('');
+                
+                select.innerHTML = '<option value="">Select destination...</option>' + destinations;
+                
+                if (Object.keys(freightData).length > 0) {
+                    select.value = Object.keys(freightData)[0];
+                }
+            },
+            
+            populateInventory() {
+                const select = document.getElementById('sellInventory');
+                
+                if (GAME_STATE.physicalPositions.length === 0) {
+                    select.innerHTML = '<option value="none">-- No inventory available --</option>';
+                    return;
+                }
+                
+                const options = GAME_STATE.physicalPositions.map((pos, index) => {
+                    return `<option value="${index}">${pos.tonnage}MT from ${pos.supplier} @ $${pos.costPerMT}/MT</option>`;
+                }).join('');
+                
+                select.innerHTML = '<option value="none">Select inventory...</option>' + options;
+            },
+            
+            calculateBuy() {
+                const tonnage = parseFloat(document.getElementById('buyTonnage').value) || 5;
+                const exchange = document.querySelector('input[name="exchange"]:checked').value;
+                const shippingTerms = document.querySelector('input[name="shippingTerms"]:checked').value;
+                const destinationKey = document.getElementById('buyDestination').value;
+                
+                if (!destinationKey) return;
+                
+                const monthData = GAME_STATE.currentMonthData;
+                const supplier = this.currentTrade.supplier;
+                const premium = this.currentTrade.premium || 0;
+                
+                const spotPrice = exchange === 'LME' ? monthData.PRICING.LME.SPOT_AVG : monthData.PRICING.COMEX.SPOT_AVG;
+                
+                const originKey = supplier.toUpperCase();
+                const freightData = monthData.LOGISTICS.FREIGHT_RATES[originKey][destinationKey];
+                const fobFreight = freightData.FOB_RATE_USD_PER_TONNE;
+                const cifFreight = freightData.CIF_RATE_USD_PER_TONNE;
+                
+                const fobPrice = spotPrice + premium + fobFreight;
+                const cifPrice = spotPrice + premium + cifFreight;
+                const selectedPrice = shippingTerms === 'FOB' ? fobPrice : cifPrice;
+                const totalCost = selectedPrice * tonnage;
+                
+                document.getElementById('fobPriceDisplay').textContent = `$${Math.round(fobPrice).toLocaleString('en-US')}/MT`;
+                document.getElementById('cifPriceDisplay').textContent = `$${Math.round(cifPrice).toLocaleString('en-US')}/MT`;
+                
+                document.getElementById('buyBasePrice').textContent = `$${Math.round(spotPrice).toLocaleString('en-US')}/MT`;
+                document.getElementById('buySupplierPremium').textContent = premium > 0 ? `+$${premium}/MT` : '$0/MT';
+                document.getElementById('buyFreight').textContent = `$${Math.round(shippingTerms === 'FOB' ? fobFreight : cifFreight)}/MT (${shippingTerms})`;
+                document.getElementById('buyPricePerMT').textContent = `$${Math.round(selectedPrice).toLocaleString('en-US')}/MT`;
+                document.getElementById('buyTotalCost').textContent = `$${Math.round(totalCost).toLocaleString('en-US')}`;
+                
+                const currentMonth = GAME_STATE.currentMonth;
+                const nextMonth = this.getNextMonth(currentMonth);
+                const settlementMonth = this.getNextMonth(nextMonth);
+                document.getElementById('buyQPWarning').textContent = 
+                    `QP settlement in ${settlementMonth} based on ${nextMonth} average`;
+            },
+            
+            calculateSell() {
+                const tonnage = parseFloat(document.getElementById('sellTonnage').value) || 20;
+                const premium = this.currentTrade.premium || 0;
+                const inventoryIndex = document.getElementById('sellInventory').value;
+                
+                const monthData = GAME_STATE.currentMonthData;
+                const exchange = this.currentTrade.exchange;
+                
+                const spotPrice = exchange === 'COMEX' ? monthData.PRICING.COMEX.SPOT_AVG : monthData.PRICING.LME.SPOT_AVG;
+                
+                const salePrice = spotPrice + premium;
+                const totalRevenue = salePrice * tonnage;
+                
+                let originalCost = 0;
+                if (inventoryIndex !== 'none' && GAME_STATE.physicalPositions[inventoryIndex]) {
+                    originalCost = GAME_STATE.physicalPositions[inventoryIndex].costPerMT * tonnage;
+                } else {
+                    originalCost = 9000 * tonnage;
+                }
+                
+                const netProfit = totalRevenue - originalCost;
+                
+                document.getElementById('sellBasePrice').textContent = `$${Math.round(spotPrice).toLocaleString('en-US')}/MT`;
+                document.getElementById('sellRegionalPremium').textContent = `+$${premium}/MT`;
+                document.getElementById('sellPricePerMT').textContent = `$${Math.round(salePrice).toLocaleString('en-US')}/MT`;
+                document.getElementById('sellTotalRevenue').textContent = `$${Math.round(totalRevenue).toLocaleString('en-US')}`;
+                document.getElementById('sellOriginalCost').textContent = `$${Math.round(originalCost).toLocaleString('en-US')}`;
+                
+                const profitElement = document.getElementById('sellNetProfit');
+                profitElement.textContent = (netProfit > 0 ? '+' : '') + `$${Math.round(netProfit).toLocaleString('en-US')}`;
+                profitElement.classList.toggle('negative', netProfit < 0);
+                
+                const currentMonth = GAME_STATE.currentMonth;
+                const nextMonth = this.getNextMonth(currentMonth);
+                const settlementMonth = this.getNextMonth(nextMonth);
+                document.getElementById('sellQPWarning').textContent = 
+                    `QP settlement in ${settlementMonth} based on ${nextMonth} average`;
+            },
+            
+            executeBuy() {
+                const tonnage = parseFloat(document.getElementById('buyTonnage').value);
+                const exchange = document.querySelector('input[name="exchange"]:checked').value;
+                const shippingTerms = document.querySelector('input[name="shippingTerms"]:checked').value;
+                const destinationKey = document.getElementById('buyDestination').value;
+                
+                const supplier = this.currentTrade.supplier;
+                const isLTA = this.currentTrade.isLTA;
+                
+                // Check if purchase is allowed
+                const purchaseCheck = GAME_STATE.canPurchase(supplier, tonnage);
+                if (!purchaseCheck.canBuy) {
+                    alert(`❌ Purchase Not Allowed\n\n${purchaseCheck.message}`);
+                    return;
+                }
+                
+                const monthData = GAME_STATE.currentMonthData;
+                const premium = this.currentTrade.premium || 0;
+                
+                const spotPrice = exchange === 'LME' ? monthData.PRICING.LME.SPOT_AVG : monthData.PRICING.COMEX.SPOT_AVG;
+                const originKey = supplier.toUpperCase();
+                const freightData = monthData.LOGISTICS.FREIGHT_RATES[originKey][destinationKey];
+                const freight = shippingTerms === 'FOB' ? freightData.FOB_RATE_USD_PER_TONNE : freightData.CIF_RATE_USD_PER_TONNE;
+                
+                const costPerMT = spotPrice + premium + freight;
+                const totalCost = costPerMT * tonnage;
+                
+                // Check buying power
+                const buyingPower = GAME_STATE.practiceFunds + (GAME_STATE.locLimit - GAME_STATE.locUsed);
+                if (totalCost > buyingPower) {
+                    alert(`❌ Insufficient Buying Power\n\nNeed: $${Math.round(totalCost).toLocaleString('en-US')}\nAvailable: $${Math.round(buyingPower).toLocaleString('en-US')}`);
+                    return;
+                }
+                
+                // Execute purchase
+                const position = GAME_STATE.purchaseCopper(
+                    supplier,
+                    tonnage,
+                    costPerMT,
+                    totalCost,
+                    isLTA,
+                    exchange,
+                    shippingTerms,
+                    destinationKey
+                );
+                
+                GAME_STATE.updateHeader();
+                
+                const arrivalMonth = this.getMonthName(position.arrivalTurn);
+                alert(`✅ Purchase Executed!\n\n${tonnage} MT from ${supplier}\nTotal Cost: $${Math.round(totalCost).toLocaleString('en-US')}\nPaid from Funds: $${Math.round(position.paidFromFunds).toLocaleString('en-US')}\nPaid from LOC: $${Math.round(position.paidFromLOC).toLocaleString('en-US')}\n\nTravel Time: ${position.travelTimeDays} days\nArrival: ${arrivalMonth}\n\nRemaining this month: ${purchaseCheck.remaining - tonnage}MT`);
+                this.close();
+                
+                // Refresh markets widget
+                if (typeof MarketsWidget !== 'undefined') {
+                    MarketsWidget.init();
+                }
+                
+                // Refresh positions widget
+                if (typeof PositionsWidget !== 'undefined') {
+                    PositionsWidget.init();
+                }
+            },
+            
+            executeSell() {
+                const tonnage = parseFloat(document.getElementById('sellTonnage').value);
+                const inventoryIndex = parseInt(document.getElementById('sellInventory').value);
+                
+                if (isNaN(inventoryIndex)) {
+                    alert('❌ Please select inventory to sell');
+                    return;
+                }
+                
+                const position = GAME_STATE.physicalPositions[inventoryIndex];
+                if (!position || position.tonnage < tonnage) {
+                    alert('❌ Insufficient inventory');
+                    return;
+                }
+                
+                const region = this.currentTrade.buyer;
+                
+                // Check if sale is allowed
+                const saleCheck = GAME_STATE.canSell(region, tonnage);
+                if (!saleCheck.canSell) {
+                    alert(`❌ Sale Not Allowed\n\n${saleCheck.message}`);
+                    return;
+                }
+                
+                const monthData = GAME_STATE.currentMonthData;
+                const exchange = this.currentTrade.exchange;
+                const premium = this.currentTrade.premium || 0;
+                
+                const spotPrice = exchange === 'COMEX' ? monthData.PRICING.COMEX.SPOT_AVG : monthData.PRICING.LME.SPOT_AVG;
+                const salePrice = spotPrice + premium;
+                const totalRevenue = salePrice * tonnage;
+                
+                // Execute sale
+                const profit = GAME_STATE.sellCopper(inventoryIndex, tonnage, region, salePrice, totalRevenue);
+                
+                GAME_STATE.updateHeader();
+                
+                alert(`✅ Sale Executed!\n\n${tonnage} MT to ${region}\nRevenue: $${Math.round(totalRevenue).toLocaleString('en-US')}\nProfit: $${Math.round(profit).toLocaleString('en-US')}\n\nRemaining this month: ${saleCheck.remaining - tonnage}MT`);
+                this.close();
+                
+                // Refresh markets widget
+                if (typeof MarketsWidget !== 'undefined') {
+                    MarketsWidget.init();
+                }
+                
+                // Refresh positions widget
+                if (typeof PositionsWidget !== 'undefined') {
+                    PositionsWidget.init();
+                }
+            },
+            
+            getMonthName(turn) {
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+                return months[(turn - 1) % 12];
+            },
+            
+            getNextMonth(month) {
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+                const index = months.indexOf(month);
+                return months[(index + 1) % 12];
+            }
+        };
+
+        /* ==========================================
+           WIDGET DRAG & DROP FROM SIDEBAR
+           ========================================== */
+        
+        function handleWidgetDragStart(e) {
+            draggedWidget = e.target.dataset.widget;
+            e.dataTransfer.effectAllowed = 'move';
+            
+            const preview = document.getElementById('dragPreview');
+            preview.textContent = draggedWidget;
+            preview.style.display = 'block';
+            
+            showNextEmptyPanelAsDropZone();
+        }
+
+        function handleWidgetDragEnd(e) {
+            const preview = document.getElementById('dragPreview');
+            preview.style.display = 'none';
+            draggedWidget = null;
+            hideEmptyPanelDropZones();
+        }
+
+        function handlePanelDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('drag-over');
+            return false;
+        }
+
+        function handlePanelDragLeave(e) {
+            if (e.target === e.currentTarget) {
+                e.currentTarget.classList.remove('drag-over');
+            }
+        }
+
+        function handlePanelDrop(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            const zone = e.currentTarget;
+            zone.classList.remove('drag-over');
+            zone.classList.remove('drop-zone-highlight');
+            
+            const panelId = zone.dataset.panel;
+            
+            if (!draggedWidget) return false;
+            
+            if (panelState[panelId].includes(draggedWidget)) {
+                alert(`${draggedWidget} is already in Panel ${panelId}`);
+                hideEmptyPanelDropZones();
+                return false;
+            }
+            
+            addWidgetToPanel(panelId, draggedWidget);
+            hideEmptyPanelDropZones();
+            return false;
+        }
+
+        function showNextEmptyPanelAsDropZone() {
+            const emptyPanels = ['A', 'B', 'C'].filter(id => panelState[id].length === 0);
+            
+            if (emptyPanels.length > 0) {
+                const nextEmpty = emptyPanels[0];
+                const zone = document.getElementById('panel' + nextEmpty);
+                
+                zone.classList.remove('empty');
+                zone.classList.add('drop-zone-highlight');
+                zone.style.display = 'flex';
+                zone.style.flex = '1';
+                zone.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: #888; font-size: 14px; border: 2px dashed #4a9eff; background: #1a2a3a; pointer-events: none;">Drop widget here</div>';
+                
+                updateDividersForDropZone();
+            }
+        }
+
+        function hideEmptyPanelDropZones() {
+            ['A', 'B', 'C'].forEach(panelId => {
+                if (panelState[panelId].length === 0) {
+                    const zone = document.getElementById('panel' + panelId);
+                    if (zone) {
+                        zone.classList.add('empty');
+                        zone.classList.remove('drop-zone-highlight');
+                        zone.style.display = 'none';
+                        zone.style.flex = '0';
+                        zone.innerHTML = '';
+                    }
+                }
+            });
+            
+            applyPanelLayout();
+        }
+
+        function updateDividersForDropZone() {
+            const dividerAB = document.querySelector('[data-divider="A-B"]');
+            const dividerBC = document.querySelector('[data-divider="B-C"]');
+            
+            const hasA = panelState.A.length > 0;
+            const hasB = panelState.B.length > 0;
+            const hasC = panelState.C.length > 0;
+            
+            const dropZoneA = document.getElementById('panelA').classList.contains('drop-zone-highlight');
+            const dropZoneB = document.getElementById('panelB').classList.contains('drop-zone-highlight');
+            const dropZoneC = document.getElementById('panelC').classList.contains('drop-zone-highlight');
+            
+            dividerAB.style.display = ((hasA || dropZoneA) && (hasB || dropZoneB)) ? '' : 'none';
+            dividerBC.style.display = ((hasB || dropZoneB) && (hasC || dropZoneC)) ? '' : 'none';
+        }
+
+        async function addWidgetToPanel(panelId, widgetName) {
+            const zone = document.getElementById('panel' + panelId);
+            panelState[panelId].push(widgetName);
+            
+            if (panelState[panelId].length === 1) {
+                zone.classList.remove('empty');
+                zone.classList.remove('drop-zone-highlight');
+                zone.style.display = 'flex';
+                zone.innerHTML = '';
+                
+                const container = document.createElement('div');
+                container.className = 'panel-container';
+                
+                const header = document.createElement('div');
+                header.className = 'panel-header';
+                
+                const content = document.createElement('div');
+                content.className = 'panel-content';
+                
+                container.appendChild(header);
+                container.appendChild(content);
+                zone.appendChild(container);
+                
+                redistributePanels();
+            }
+            
+            const header = zone.querySelector('.panel-header');
+            const tab = createTab(panelId, widgetName, panelState[panelId].length === 1);
+            header.appendChild(tab);
+            
+            const content = zone.querySelector('.panel-content');
+            const widgetContent = await createWidgetContent(widgetName, panelState[panelId].length === 1);
+            content.appendChild(widgetContent);
+            
+            setupTabDropZones();
+        }
+
+        function createTab(panelId, widgetName, isActive) {
+            const tab = document.createElement('div');
+            tab.className = 'panel-tab' + (isActive ? ' active' : '');
+            tab.dataset.widget = widgetName;
+            tab.dataset.sourcePanel = panelId;
+            tab.draggable = true;
+            
+            tab.onclick = (e) => {
+                if (e.target.classList.contains('close-btn')) return;
+                switchTab(panelId, widgetName);
+            };
+            
+            tab.addEventListener('dragstart', handleTabDragStart);
+            tab.addEventListener('dragend', handleTabDragEnd);
+            
+            const name = document.createElement('span');
+            name.className = 'panel-tab-name';
+            name.textContent = widgetName;
+            
+            const closeBtn = document.createElement('span');
+            closeBtn.className = 'close-btn';
+            closeBtn.textContent = '×';
+            closeBtn.onclick = (e) => {
+                e.stopPropagation();
+                closeWidget(panelId, widgetName);
+            };
+            
+            tab.appendChild(name);
+            tab.appendChild(closeBtn);
+            return tab;
+        }
+
+        async function createWidgetContent(widgetName, isActive) {
+            const content = document.createElement('div');
+            content.className = 'widget-content' + (isActive ? ' active' : '');
+            content.dataset.widget = widgetName;
+            
+            if (widgetName === 'Markets') {
+                content.innerHTML = `
+                    <div class="markets-widget-content">
+                        <div class="section-title">🔵 Suppliers - Buy Copper</div>
+                        <table class="markets-table">
+                            <thead>
+                                <tr>
+                                    <th>SELLER</th>
+                                    <th>AVAILABLE</th>
+                                    <th>PRICING BASIS</th>
+                                    <th>PREMIUM</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliersTableBody"></tbody>
+                        </table>
+
+                        <div class="section-title">🟢 Buyers - Sell Copper</div>
+                        <table class="markets-table">
+                            <thead>
+                                <tr>
+                                    <th>BUYER</th>
+                                    <th>DEMAND</th>
+                                    <th>PORT</th>
+                                    <th>EXCHANGE</th>
+                                    <th>QP</th>
+                                    <th>PREMIUM</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="buyersTableBody"></tbody>
+                        </table>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    if (typeof MarketsWidget !== 'undefined') {
+                        MarketsWidget.init();
+                    }
+                }, 100);
+                
+                return content;
+            }
+            
+            if (widgetName === 'Positions') {
+                content.innerHTML = `
+                    <div class="positions-widget-content" style="padding: 15px;">
+                        <div class="section-title">📦 Physical Positions</div>
+                        <div id="positionsContainer"></div>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    if (typeof PositionsWidget !== 'undefined') {
+                        PositionsWidget.init();
+                    }
+                }, 100);
+                
+                return content;
+            }
+            
+            content.innerHTML = `<div style="padding: 20px; color: #666;">${widgetName} widget content</div>`;
+            return content;
+        }
+
+        function switchTab(panelId, widgetName) {
+            const zone = document.getElementById('panel' + panelId);
+            if (!zone) return;
+            
+            zone.querySelectorAll('.panel-tab').forEach(tab => {
+                if (tab.dataset.widget === widgetName) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            zone.querySelectorAll('.widget-content').forEach(content => {
+                if (content.dataset.widget === widgetName) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+        }
+
+        function closeWidget(panelId, widgetName) {
+            const zone = document.getElementById('panel' + panelId);
+            
+            const index = panelState[panelId].indexOf(widgetName);
+            if (index > -1) {
+                panelState[panelId].splice(index, 1);
+            }
+            
+            if (panelState[panelId].length === 0) {
+                zone.innerHTML = '';
+                zone.classList.add('empty');
+                zone.style.display = 'none';
+                redistributePanels();
+                return;
+            }
+            
+            const tab = zone.querySelector(`.panel-tab[data-widget="${widgetName}"]`);
+            const content = zone.querySelector(`.widget-content[data-widget="${widgetName}"]`);
+            
+            const wasActive = tab.classList.contains('active');
+            
+            tab.remove();
+            content.remove();
+            
+            if (wasActive && panelState[panelId].length > 0) {
+                switchTab(panelId, panelState[panelId][0]);
+            }
+        }
+
+        /* ==========================================
+           TAB DRAG & DROP (BETWEEN PANELS)
+           ========================================== */
+        
+        function handleTabDragStart(e) {
+            draggedTab = e.currentTarget;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', draggedTab.dataset.widget);
+            
+            draggedTab.style.opacity = '0.4';
+            
+            const preview = document.getElementById('dragPreview');
+            preview.textContent = draggedTab.dataset.widget + ' (tab)';
+            preview.style.display = 'block';
+        }
+
+        function handleTabDragEnd(e) {
+            if (draggedTab) {
+                draggedTab.style.opacity = '';
+            }
+            draggedTab = null;
+            
+            const preview = document.getElementById('dragPreview');
+            preview.style.display = 'none';
+            
+            document.querySelectorAll('.panel-header').forEach(header => {
+                header.classList.remove('tab-drag-over');
+            });
+        }
+
+        function handleTabHeaderDragOver(e) {
+            if (!draggedTab) return;
+            
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('tab-drag-over');
+            return false;
+        }
+
+        function handleTabHeaderDragLeave(e) {
+            if (!draggedTab) return;
+            
+            const header = e.currentTarget;
+            if (!header.contains(e.relatedTarget)) {
+                header.classList.remove('tab-drag-over');
+            }
+        }
+
+        function handleTabHeaderDrop(e) {
+            if (!draggedTab) return;
+            
+            e.stopPropagation();
+            e.preventDefault();
+            
+            const targetHeader = e.currentTarget;
+            const targetPanel = targetHeader.closest('.panel-zone');
+            const targetPanelId = targetPanel.dataset.panel;
+            const sourcePanel = draggedTab.dataset.sourcePanel;
+            const widgetName = draggedTab.dataset.widget;
+            
+            targetHeader.classList.remove('tab-drag-over');
+            
+            if (sourcePanel === targetPanelId) return false;
+            
+            if (panelState[targetPanelId].includes(widgetName)) {
+                alert(`${widgetName} is already in Panel ${targetPanelId}`);
+                return false;
+            }
+            
+            moveTabBetweenPanels(sourcePanel, targetPanelId, widgetName);
+            return false;
+        }
+
+        function moveTabBetweenPanels(sourcePanelId, targetPanelId, widgetName) {
+            const sourceIndex = panelState[sourcePanelId].indexOf(widgetName);
+            if (sourceIndex > -1) {
+                panelState[sourcePanelId].splice(sourceIndex, 1);
+            }
+            panelState[targetPanelId].push(widgetName);
+            
+            const sourceZone = document.getElementById('panel' + sourcePanelId);
+            const widgetContent = sourceZone.querySelector(`.widget-content[data-widget="${widgetName}"]`);
+            
+            if (!widgetContent) return;
+            
+            const contentClone = widgetContent.cloneNode(true);
+            
+            const sourceTab = sourceZone.querySelector(`.panel-tab[data-widget="${widgetName}"]`);
+            if (sourceTab) sourceTab.remove();
+            widgetContent.remove();
+            
+            if (panelState[sourcePanelId].length === 0) {
+                sourceZone.innerHTML = '';
+                sourceZone.classList.add('empty');
+                sourceZone.style.display = 'none';
+                redistributePanels();
+            } else {
+                const remainingTabs = sourceZone.querySelectorAll('.panel-tab');
+                const hasActive = Array.from(remainingTabs).some(tab => tab.classList.contains('active'));
+                if (!hasActive && remainingTabs.length > 0) {
+                    switchTab(sourcePanelId, panelState[sourcePanelId][0]);
+                }
+            }
+            
+            const targetZone = document.getElementById('panel' + targetPanelId);
+            
+            if (panelState[targetPanelId].length === 1) {
+                targetZone.classList.remove('empty');
+                targetZone.style.display = 'flex';
+                targetZone.innerHTML = '';
+                
+                const container = document.createElement('div');
+                container.className = 'panel-container';
+                
+                const header = document.createElement('div');
+                header.className = 'panel-header';
+                
+                const content = document.createElement('div');
+                content.className = 'panel-content';
+                
+                container.appendChild(header);
+                container.appendChild(content);
+                targetZone.appendChild(container);
+                
+                redistributePanels();
+            }
+            
+            const targetHeader = targetZone.querySelector('.panel-header');
+            const newTab = createTab(targetPanelId, widgetName, false);
+            targetHeader.appendChild(newTab);
+            
+            const targetContent = targetZone.querySelector('.panel-content');
+            contentClone.classList.remove('active');
+            targetContent.appendChild(contentClone);
+            
+            setupTabDropZones();
+        }
+
+        function setupTabDropZones() {
+            document.querySelectorAll('.panel-header').forEach(header => {
+                header.removeEventListener('dragover', handleTabHeaderDragOver);
+                header.removeEventListener('dragleave', handleTabHeaderDragLeave);
+                header.removeEventListener('drop', handleTabHeaderDrop);
+                
+                header.addEventListener('dragover', handleTabHeaderDragOver);
+                header.addEventListener('dragleave', handleTabHeaderDragLeave);
+                header.addEventListener('drop', handleTabHeaderDrop);
+            });
+        }
+
+        function setupInitialTabs() {
+            document.querySelectorAll('.panel-tab').forEach(tab => {
+                tab.draggable = true;
+                
+                const panel = tab.closest('.panel-zone');
+                if (panel) {
+                    const panelId = panel.dataset.panel;
+                    tab.dataset.sourcePanel = panelId;
+                    
+                    const widgetName = tab.dataset.widget;
+                    tab.onclick = (e) => {
+                        if (e.target.classList.contains('close-btn')) return;
+                        switchTab(panelId, widgetName);
+                    };
+                }
+                
+                tab.addEventListener('dragstart', handleTabDragStart);
+                tab.addEventListener('dragend', handleTabDragEnd);
+            });
+        }
+
+        /* ==========================================
+           PANEL RESIZING
+           ========================================== */
+        
+        function handleDividerMouseDown(e) {
+            e.preventDefault();
+            resizingDivider = e.currentTarget;
+            resizeStartX = e.clientX;
+            
+            const dividerType = resizingDivider.dataset.divider;
+            const [leftPanel, rightPanel] = dividerType.split('-');
+            
+            const leftElement = document.getElementById('panel' + leftPanel);
+            const rightElement = document.getElementById('panel' + rightPanel);
+            
+            resizeStartData = {
+                leftPanel: leftPanel,
+                rightPanel: rightPanel,
+                leftFlex: panelFlexValues[leftPanel],
+                rightFlex: panelFlexValues[rightPanel],
+                leftWidth: leftElement.offsetWidth,
+                rightWidth: rightElement.offsetWidth
+            };
+            
+            resizingDivider.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        }
+
+        function handleDividerMouseMove(e) {
+            if (!resizingDivider) return;
+            
+            const deltaX = e.clientX - resizeStartX;
+            const totalWidth = resizeStartData.leftWidth + resizeStartData.rightWidth;
+            const totalFlex = resizeStartData.leftFlex + resizeStartData.rightFlex;
+            
+            const newLeftWidth = resizeStartData.leftWidth + deltaX;
+            const newRightWidth = resizeStartData.rightWidth - deltaX;
+            
+            if (newLeftWidth < 100 || newRightWidth < 100) return;
+            
+            const leftRatio = newLeftWidth / totalWidth;
+            const rightRatio = newRightWidth / totalWidth;
+            
+            panelFlexValues[resizeStartData.leftPanel] = leftRatio * totalFlex;
+            panelFlexValues[resizeStartData.rightPanel] = rightRatio * totalFlex;
+            
+            applyPanelLayout();
+        }
+
+        function handleDividerMouseUp(e) {
+            if (!resizingDivider) return;
+            
+            resizingDivider.classList.remove('dragging');
+            resizingDivider = null;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+
+        function redistributePanels() {
+            const activePanels = ['A', 'B', 'C'].filter(id => panelState[id].length > 0);
+            
+            panelFlexValues.A = 0;
+            panelFlexValues.B = 0;
+            panelFlexValues.C = 0;
+            
+            activePanels.forEach(id => {
+                panelFlexValues[id] = 1;
+            });
+            
+            applyPanelLayout();
+        }
+
+        function applyPanelLayout() {
+            const panelA = document.getElementById('panelA');
+            const panelB = document.getElementById('panelB');
+            const panelC = document.getElementById('panelC');
+            const dividerAB = document.querySelector('[data-divider="A-B"]');
+            const dividerBC = document.querySelector('[data-divider="B-C"]');
+            
+            const hasA = panelState.A.length > 0;
+            const hasB = panelState.B.length > 0;
+            const hasC = panelState.C.length > 0;
+            
+            panelA.style.flex = panelFlexValues.A;
+            panelB.style.flex = panelFlexValues.B;
+            panelC.style.flex = panelFlexValues.C;
+            
+            panelA.style.display = hasA ? 'flex' : 'none';
+            panelB.style.display = hasB ? 'flex' : 'none';
+            panelC.style.display = hasC ? 'flex' : 'none';
+            
+            dividerAB.style.display = (hasA && hasB) ? '' : 'none';
+            dividerBC.style.display = (hasB && hasC) ? '' : 'none';
+        }
+
+        function updateDragPreviewPosition(e) {
+            if (!draggedWidget && !draggedTab) return;
+            const preview = document.getElementById('dragPreview');
+            preview.style.left = e.pageX + 10 + 'px';
+            preview.style.top = e.pageY + 10 + 'px';
+        }
+
+        /* ==========================================
+           SIDEBAR & THEME
+           ========================================== */
+        
+        function advanceTurn() {
+            if (!confirm(`Advance to next turn?\n\nThis will:\n- Charge interest on LOC: $${Math.round(GAME_STATE.locInterestNextMonth).toLocaleString('en-US')}\n- Move to ${GAME_STATE.currentTurn === 1 ? 'February' : GAME_STATE.currentTurn === 2 ? 'March' : GAME_STATE.currentTurn === 3 ? 'April' : 'May'}\n- Reset monthly limits\n- Update position statuses`)) {
+                return;
+            }
+            
+            // Process settlements BEFORE advancing turn
+            const settledPositions = GAME_STATE.processSettlements(GAME_STATE.currentTurn + 1);
+            
+            // Charge interest
+            GAME_STATE.practiceFunds -= GAME_STATE.locInterestNextMonth;
+            GAME_STATE.totalPL -= GAME_STATE.locInterestNextMonth;
+            
+            const interestCharged = GAME_STATE.locInterestNextMonth;
+            
+            GAME_STATE.currentTurn++;
+            GAME_STATE.resetMonthlyLimits();
+            
+            // Update position statuses
+            GAME_STATE.updatePositionStatus(GAME_STATE.currentTurn);
+            
+            // Load next month data
+            const monthMap = {
+                2: FEBRUARY_DATA,
+                3: MARCH_DATA,
+                4: APRIL_DATA
+            };
+            
+            if (monthMap[GAME_STATE.currentTurn]) {
+                GAME_STATE.currentMonthData = monthMap[GAME_STATE.currentTurn];
+                GAME_STATE.currentMonth = GAME_STATE.currentMonthData.MONTH;
+            } else {
+                alert('End of simulation! Only 4 months available.');
+                return;
+            }
+            
+            GAME_STATE.updateHeader();
+            
+            // Refresh all widgets
+            if (typeof MarketsWidget !== 'undefined') {
+                MarketsWidget.init();
+            }
+            if (typeof PositionsWidget !== 'undefined') {
+                PositionsWidget.render();
+            }
+            
+            alert(`✅ Advanced to ${GAME_STATE.currentMonth}!\n\nInterest Charged: $${Math.round(interestCharged).toLocaleString('en-US')}\nMonthly limits reset.\n${GAME_STATE.physicalPositions.filter(p => p.status === 'ARRIVED').length} position(s) arrived.`);
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = sidebar.querySelector('.sidebar-toggle');
+            sidebar.classList.toggle('collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggle.textContent = '▶';
+            } else {
+                toggle.textContent = '◀';
+            }
+        }
+
+        
+        function showSaleDetails(soldInfo, costPerMT, posId) {
+            const totalCost = costPerMT * soldInfo.tonnage;
+            const profit = soldInfo.totalRevenue - totalCost;
+            const profitPerTon = profit / soldInfo.tonnage;
+            
+            const costEquation = `${soldInfo.tonnage} MT × $${Math.round(costPerMT).toLocaleString('en-US')}/MT = $${Math.round(totalCost).toLocaleString('en-US')}`;
+            const revenueEquation = `${soldInfo.tonnage} MT × $${Math.round(soldInfo.salePrice).toLocaleString('en-US')}/MT = $${Math.round(soldInfo.totalRevenue).toLocaleString('en-US')}`;
+            
+            const popup = document.createElement('div');
+            popup.className = 'sale-details-popup';
+            popup.id = 'saleDetailsPopup';
+            popup.innerHTML = `
+                <div class="sale-details-content">
+                    <div class="sale-details-header">
+                        <span>📋 Sale Details</span>
+                        <button class="sale-details-close" onclick="closeSaleDetails()">×</button>
+                    </div>
+                    <div class="sale-details-body">
+                        <div class="sale-detail-row">
+                            <span class="sale-detail-label">Region:</span>
+                            <span class="sale-detail-value">${soldInfo.region}</span>
+                        </div>
+                        <div class="sale-detail-row">
+                            <span class="sale-detail-label">Tonnage:</span>
+                            <span class="sale-detail-value">${soldInfo.tonnage} MT</span>
+                        </div>
+                        <div class="sale-detail-row">
+                            <span class="sale-detail-label">QP Period:</span>
+                            <span class="sale-detail-value" style="color: #fbbf24; font-weight: 700;">M+1</span>
+                        </div>
+                        <div class="sale-detail-divider"></div>
+                        <div class="sale-detail-row">
+                            <span class="sale-detail-label">Original Cost:</span>
+                            <span class="sale-detail-value price-negative">-$${Math.round(totalCost).toLocaleString('en-US')}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #888; padding: 4px 0; text-align: right;">${costEquation}</div>
+                        <div class="sale-detail-row">
+                            <span class="sale-detail-label">Sale Revenue:</span>
+                            <span class="sale-detail-value price-positive">+$${Math.round(soldInfo.totalRevenue).toLocaleString('en-US')}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #888; padding: 4px 0; text-align: right;">${revenueEquation}</div>
+                        <div class="sale-detail-divider"></div>
+                        <div class="sale-detail-row">
+                            <span class="sale-detail-label">Projected Profit:</span>
+                            <span class="sale-detail-value ${profit >= 0 ? 'price-positive' : 'price-negative'}">${profit >= 0 ? '+' : ''}$${Math.round(profit).toLocaleString('en-US')}</span>
+                        </div>
+                        <div class="sale-detail-row">
+                            <span class="sale-detail-label">Profit per Ton:</span>
+                            <span class="sale-detail-value ${profitPerTon >= 0 ? 'price-positive' : 'price-negative'}">${profitPerTon >= 0 ? '+' : ''}$${Math.round(profitPerTon).toLocaleString('en-US')}/MT</span>
+                        </div>
+                        <div class="sale-detail-row">
+                            <span class="sale-detail-label">Settlement Turn:</span>
+                            <span class="sale-detail-value">${soldInfo.settlementTurn}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(popup);
+            setTimeout(() => popup.classList.add('active'), 10);
+        }
+        
+        function closeSaleDetails() {
+            const popup = document.getElementById('saleDetailsPopup');
+            if (popup) {
+                popup.classList.remove('active');
+                setTimeout(() => popup.remove(), 300);
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            const btn = document.querySelector('.theme-toggle');
+            
+            html.setAttribute('data-theme', newTheme);
+            
+            if (newTheme === 'light') {
+                btn.textContent = '🌙 Dark Mode';
+            } else {
+                btn.textContent = '☀️ Light Mode';
+            }
+            
+            localStorage.setItem('theme', newTheme);
+        }
+
+        /* ==========================================
+           INITIALIZATION
+           ========================================== */
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            GAME_STATE.init();
+            MarketsWidget.init();
+            TradePanel.init();
+            
+            // Setup drag and drop
+            document.querySelectorAll('.widget-item').forEach(item => {
+                item.addEventListener('dragstart', handleWidgetDragStart);
+                item.addEventListener('dragend', handleWidgetDragEnd);
+            });
+
+            document.querySelectorAll('.panel-zone').forEach(zone => {
+                zone.addEventListener('dragover', handlePanelDragOver);
+                zone.addEventListener('dragleave', handlePanelDragLeave);
+                zone.addEventListener('drop', handlePanelDrop);
+            });
+
+            document.querySelectorAll('.panel-divider').forEach(divider => {
+                divider.addEventListener('mousedown', handleDividerMouseDown);
+            });
+
+            document.addEventListener('mousemove', handleDividerMouseMove);
+            document.addEventListener('mouseup', handleDividerMouseUp);
+            document.addEventListener('dragover', updateDragPreviewPosition);
+
+            setupInitialTabs();
+            setupTabDropZones();
+            
+            // Load saved theme
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const html = document.documentElement;
+            const btn = document.querySelector('.theme-toggle');
+            
+            html.setAttribute('data-theme', savedTheme);
+            if (savedTheme === 'light') {
+                btn.textContent = '🌙 Dark Mode';
+            }
+        });
+    </script>
+</body>
+</html>
