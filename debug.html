@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Check</title>
+</head>
+<body>
+    <h1>Module Loading Test</h1>
+    <div id="results"></div>
+
+    <script src="data/january.js"></script>
+    <script type="module">
+        const results = [];
+
+        // Check if data loaded
+        if (typeof JANUARY_DATA !== 'undefined') {
+            results.push('✅ JANUARY_DATA loaded globally');
+        } else {
+            results.push('❌ JANUARY_DATA NOT loaded');
+        }
+
+        if (window.JANUARY_DATA) {
+            results.push('✅ window.JANUARY_DATA accessible');
+        } else {
+            results.push('❌ window.JANUARY_DATA NOT accessible');
+        }
+
+        // Try importing modules
+        try {
+            const { GAME_STATE } = await import('./js/core/game-state.js');
+            results.push('✅ GAME_STATE module imported');
+
+            GAME_STATE.init();
+
+            if (GAME_STATE.currentMonthData) {
+                results.push('✅ GAME_STATE.currentMonthData set: ' + GAME_STATE.currentMonthData.MONTH);
+            } else {
+                results.push('❌ GAME_STATE.currentMonthData is NULL');
+            }
+        } catch (e) {
+            results.push('❌ Error importing GAME_STATE: ' + e.message);
+        }
+
+        try {
+            const { TradePanel } = await import('./js/core/trade-panel.js');
+            results.push('✅ TradePanel module imported');
+        } catch (e) {
+            results.push('❌ Error importing TradePanel: ' + e.message);
+        }
+
+        try {
+            const { MarketsWidget } = await import('./js/widgets/markets-widget.js');
+            results.push('✅ MarketsWidget module imported');
+        } catch (e) {
+            results.push('❌ Error importing MarketsWidget: ' + e.message);
+        }
+
+        document.getElementById('results').innerHTML = '<pre>' + results.join('\n') + '</pre>';
+    </script>
+</body>
+</html>
