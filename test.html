@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        .result { background: #2a2a2a; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+    </style>
+</head>
+<body>
+    <h1>Trade Panel Test</h1>
+
+    <button id="testBtn">Click Me to Test TradePanel</button>
+
+    <div id="output"></div>
+
+    <!-- Load data files -->
+    <script src="data/january.js"></script>
+
+    <!-- Load as module -->
+    <script type="module">
+        const output = document.getElementById('output');
+
+        function log(msg, isError = false) {
+            const div = document.createElement('div');
+            div.className = 'result ' + (isError ? 'error' : 'success');
+            div.textContent = msg;
+            output.appendChild(div);
+        }
+
+        // Test 1: Check if data loaded
+        if (window.JANUARY_DATA) {
+            log('✅ JANUARY_DATA loaded: ' + window.JANUARY_DATA.MONTH);
+        } else {
+            log('❌ JANUARY_DATA not loaded', true);
+        }
+
+        // Test 2: Import and init GAME_STATE
+        try {
+            const { GAME_STATE } = await import('./js/core/game-state.js');
+            log('✅ GAME_STATE imported');
+
+            GAME_STATE.init();
+
+            if (GAME_STATE.currentMonthData) {
+                log('✅ GAME_STATE initialized with month: ' + GAME_STATE.currentMonthData.MONTH);
+            } else {
+                log('❌ GAME_STATE.currentMonthData is null', true);
+            }
+
+            window.GAME_STATE = GAME_STATE;
+        } catch (e) {
+            log('❌ Error with GAME_STATE: ' + e.message, true);
+        }
+
+        // Test 3: Import and init TradePanel
+        try {
+            const { TradePanel } = await import('./js/core/trade-panel.js');
+            log('✅ TradePanel imported');
+
+            TradePanel.init();
+            log('✅ TradePanel.init() called');
+
+            window.TradePanel = TradePanel;
+
+            // Test 4: Check if init actually attached listeners
+            const buyBtn = document.getElementById('buyTonnage');
+            if (buyBtn) {
+                log('⚠️ buyTonnage element exists in DOM');
+            } else {
+                log('ℹ️ buyTonnage element not in DOM (that\'s ok, it\'s in trade panel)');
+            }
+
+            // Test 5: Try calling openBuy
+            document.getElementById('testBtn').addEventListener('click', () => {
+                try {
+                    TradePanel.openBuy('CALLAO', 'Callao, Peru', 5, 17, 'LME', 15, true);
+                    log('✅ TradePanel.openBuy() called successfully!');
+                    log('ℹ️ Check if blue popup appeared on screen');
+                } catch (e) {
+                    log('❌ Error calling openBuy: ' + e.message, true);
+                }
+            });
+
+        } catch (e) {
+            log('❌ Error with TradePanel: ' + e.message, true);
+        }
+    </script>
+
+    <!-- Trade panel HTML (copied from index.html) -->
+    <div class="trade-panel" id="buyPanel" style="display: none; position: fixed; width: 500px; height: 500px; background: #2a2a2a; border: 2px solid #333; border-radius: 12px; z-index: 3000;">
+        <div class="trade-panel-header" id="buyPanelHeader" style="background: linear-gradient(135deg, #3b82f6, #2563eb); padding: 15px 20px; cursor: move; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 16px; font-weight: 700; color: white;">Buy Copper</span>
+            <button id="buyPanelClose" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 20px;">×</button>
+        </div>
+        <div style="padding: 20px; overflow-y: auto; height: calc(100% - 60px);">
+            <div style="background: #242424; border: 1px solid #333; border-radius: 6px; padding: 12px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;">
+                    <span style="color: #888; font-weight: 600;">SUPPLIER</span>
+                    <span id="buySupplier" style="color: #e0e0e0; font-weight: 500;">CALLAO</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;">
+                    <span style="color: #888; font-weight: 600;">PORT</span>
+                    <span id="buyPort" style="color: #e0e0e0; font-weight: 500;">Callao, Peru</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 12px; color: #888; font-weight: 600; margin-bottom: 8px;">Tonnage (MT)</label>
+                <input type="number" id="buyTonnage" min="5" value="5" style="width: 100%; background: #242424; border: 1px solid #333; border-radius: 6px; padding: 10px; color: #e0e0e0; font-size: 14px;">
+                <div id="buyRange" style="font-size: 11px; color: #888; margin-top: 6px;">Range: 5 - 17 MT</div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 12px; color: #888; font-weight: 600; margin-bottom: 8px;">Destination Port</label>
+                <select id="buyDestination" style="width: 100%; background: #242424; border: 1px solid #333; border-radius: 6px; padding: 10px; color: #e0e0e0; font-size: 14px;">
+                    <option value="">Select destination...</option>
+                </select>
+            </div>
+
+            <button id="executeBuyBtn" style="width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; color: white; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">PURCHASE COPPER</button>
+        </div>
+    </div>
+</body>
+</html>
