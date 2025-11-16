@@ -33,6 +33,20 @@ import {
 } from './drag-drop/tab-drag.js';
 
 /* ==========================================
+   EXPOSE TO WINDOW IMMEDIATELY (Before HTML parsing completes)
+   ========================================== */
+
+// Make functions globally available for inline event handlers BEFORE DOMContentLoaded
+window.GAME_STATE = GAME_STATE;
+window.TradePanel = TradePanel;
+window.advanceTurn = advanceTurn;
+window.toggleSidebar = toggleSidebar;
+window.toggleTheme = toggleTheme;
+window.showSaleDetails = showSaleDetails;
+window.closeSaleDetails = closeSaleDetails;
+window.closeWidget = closeWidget;
+
+/* ==========================================
    INITIALIZATION
    ========================================== */
 
@@ -115,14 +129,4 @@ document.addEventListener('DOMContentLoaded', function() {
     if (savedTheme === 'light' && btn) {
         btn.textContent = '🌙 Dark Mode';
     }
-
-    // Make functions globally available for inline event handlers (trade panels, close buttons, etc.)
-    window.GAME_STATE = GAME_STATE;
-    window.TradePanel = TradePanel;
-    window.advanceTurn = advanceTurn;
-    window.toggleSidebar = toggleSidebar;
-    window.toggleTheme = toggleTheme;
-    window.showSaleDetails = showSaleDetails;
-    window.closeSaleDetails = closeSaleDetails;
-    window.closeWidget = closeWidget;
 });
