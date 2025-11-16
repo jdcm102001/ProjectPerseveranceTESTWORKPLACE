@@ -47,6 +47,7 @@ function advanceTurn() {
     MarketsWidget.init();
     PositionsWidget.render();
     FuturesWidget.render();
+    FuturesWidget.renderGraph();  // Re-render graph with new term structure
 
     alert(`✅ Advanced to ${GAME_STATE.currentMonth}!\n\nInterest Charged: $${Math.round(interestCharged).toLocaleString('en-US')}\nMonthly limits reset.\n${GAME_STATE.physicalPositions.filter(p => p.status === 'ARRIVED').length} position(s) arrived.`);
 }

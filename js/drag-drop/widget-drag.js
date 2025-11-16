@@ -267,7 +267,26 @@ async function createWidgetContent(widgetName, isActive) {
                     </div>
                 </div>
 
-                <!-- Contract Specifications Info Box -->
+                <!-- Toggle Buttons -->
+                <div class="futures-toggle-buttons" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="futures-toggle-btn active" data-view="LME" onclick="FuturesWidget.setView('LME')">
+                        LME
+                    </button>
+                    <button class="futures-toggle-btn" data-view="COMEX" onclick="FuturesWidget.setView('COMEX')">
+                        COMEX
+                    </button>
+                    <button class="futures-toggle-btn" data-view="BOTH" onclick="FuturesWidget.setView('BOTH')">
+                        BOTH
+                    </button>
+                </div>
+
+                <!-- Futures Term Structure Graph -->
+                <div class="futures-graph-container" style="background: rgba(30, 30, 30, 0.5); border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                    <div class="section-title" style="margin-bottom: 15px;">📈 Futures Term Structure</div>
+                    <canvas id="futuresChart" style="max-height: 300px;"></canvas>
+                </div>
+
+                <!-- Contract Specifications Info -->
                 <div class="info-box" style="margin-bottom: 20px; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 15px;">
                     <div style="font-weight: 600; margin-bottom: 10px; color: #3b82f6;">📊 Contract Specifications</div>
                     <div style="font-size: 12px; line-height: 1.8; color: #e0e0e0;">
@@ -289,6 +308,7 @@ async function createWidgetContent(widgetName, isActive) {
 
         setTimeout(() => {
             FuturesWidget.render();
+            FuturesWidget.renderGraph();
         }, 100);
 
         return content;
