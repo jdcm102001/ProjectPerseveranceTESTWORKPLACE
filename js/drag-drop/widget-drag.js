@@ -52,10 +52,15 @@ function handlePanelDrop(e) {
 
     if (!dragState.draggedWidget) return false;
 
-    if (panelState[panelId].includes(dragState.draggedWidget)) {
-        alert(`${dragState.draggedWidget} is already in Panel ${panelId}`);
-        hideEmptyPanelDropZones();
-        return false;
+    // CHECK: Is this widget already open in ANY panel?
+    const allPanels = ['A', 'B', 'C'];
+    for (let p of allPanels) {
+        if (panelState[p].includes(dragState.draggedWidget)) {
+            // Widget already exists in a panel
+            alert(`❌ "${dragState.draggedWidget}" is already open in Panel ${p}.\n\nClose it first before opening elsewhere.`);
+            hideEmptyPanelDropZones();
+            return false;
+        }
     }
 
     addWidgetToPanel(panelId, dragState.draggedWidget);
@@ -254,7 +259,13 @@ async function createWidgetContent(widgetName, isActive) {
 
     if (widgetName === 'Futures') {
         content.innerHTML = `
-            <div class="futures-widget-content">
+            <div class="futures-widget-content" style="position: relative;">
+                <!-- Help Icon -->
+                <div class="help-icon" onclick="FuturesWidget.toggleHelp()" style="position: absolute; top: 0; right: 0; z-index: 10;">❓</div>
+
+                <!-- Help Tooltip (hidden by default) -->
+                <div id="futuresHelpTooltip" class="futures-help-tooltip" style="display: none;"></div>
+
                 <!-- Summary Stats -->
                 <div class="match-stats" style="margin-bottom: 20px;">
                     <div class="match-stat">

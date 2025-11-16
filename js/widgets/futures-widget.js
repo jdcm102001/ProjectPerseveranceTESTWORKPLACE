@@ -1,4 +1,5 @@
 import { GAME_STATE } from '../core/game-state.js';
+import { refreshCollapsibles } from '../core/collapsible.js';
 
 const FuturesWidget = {
     currentView: 'LME',  // Default view
@@ -222,6 +223,9 @@ const FuturesWidget = {
         this.renderAvailableContracts(availableContainer);
         this.renderOpenPositions(positionsContainer);
         this.updateSummary();
+
+        // Refresh collapsibles for newly rendered content
+        refreshCollapsibles();
     },
 
     renderAvailableContracts(container) {
@@ -587,6 +591,54 @@ const FuturesWidget = {
     toggleHelp() {
         const tooltip = document.getElementById('futuresHelpTooltip');
         if (!tooltip) return;
+
+        // Populate content if empty
+        if (!tooltip.innerHTML) {
+            tooltip.innerHTML = `
+                <div class="help-tooltip-header">
+                    <strong>🎓 FUTURES TRADING GUIDE</strong>
+                    <button class="help-close-btn" onclick="FuturesWidget.toggleHelp()">×</button>
+                </div>
+                <div class="help-tooltip-content">
+                    <p><strong>What are Futures Contracts?</strong></p>
+                    <p>Futures allow you to lock in prices for future copper delivery without buying physical metal. You can profit from price movements or hedge your physical positions.</p>
+
+                    <p><strong>Contract Specifications:</strong></p>
+                    <ul>
+                        <li><strong>LME:</strong> 25 MT per contract, $9,000 initial margin</li>
+                        <li><strong>COMEX:</strong> 11.34 MT per contract (25,000 lbs), $9,000 initial margin</li>
+                    </ul>
+
+                    <p><strong>How to Trade:</strong></p>
+                    <ul>
+                        <li><strong>LONG:</strong> Buy contracts if you expect prices to rise</li>
+                        <li><strong>SHORT:</strong> Sell contracts if you expect prices to fall</li>
+                    </ul>
+
+                    <p><strong>Fees & Margin:</strong></p>
+                    <ul>
+                        <li>Opening fee: $25 per contract</li>
+                        <li>Closing fee: $25 per contract</li>
+                        <li>Initial margin: $9,000 per contract (posted from Practice Funds)</li>
+                        <li>Margin limit: $100,000 total</li>
+                    </ul>
+
+                    <p><strong>Mark-to-Market (MTM):</strong></p>
+                    <p>Each month, positions are revalued at current prices. If margin balance falls below initial margin, you'll receive a margin call requiring a top-up from Practice Funds or face force liquidation.</p>
+
+                    <p><strong>Offset Closing:</strong></p>
+                    <p>Opening an opposite position (e.g., SHORT when you have LONG) automatically closes your existing position(s) using FIFO (First In First Out), settling P&L immediately.</p>
+
+                    <p><strong>Expiry:</strong></p>
+                    <ul>
+                        <li>M+1 contracts expire in 1 turn</li>
+                        <li>M+3 contracts expire in 3 turns</li>
+                        <li>M+12 contracts expire in 12 turns</li>
+                    </ul>
+                    <p>At expiry, positions auto-close with final P&L settlement.</p>
+                </div>
+            `;
+        }
 
         if (tooltip.style.display === 'none' || tooltip.style.display === '') {
             tooltip.style.display = 'block';
