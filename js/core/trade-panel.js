@@ -9,6 +9,7 @@ const TradePanel = {
     dragOffsetY: 0,
 
     init() {
+        console.log('TradePanel.init() called');
         const buyHeader = document.getElementById('buyPanelHeader');
         const sellHeader = document.getElementById('sellPanelHeader');
 
@@ -20,20 +21,41 @@ const TradePanel = {
         document.addEventListener('mouseup', () => this.stopDrag());
 
         // Buy panel event listeners
-        document.getElementById('buyTonnage')?.addEventListener('input', () => this.calculateBuy());
+        const buyTonnage = document.getElementById('buyTonnage');
+        const executeBuyBtn = document.getElementById('executeBuyBtn');
+        const buyPanelClose = document.getElementById('buyPanelClose');
+
+        console.log('executeBuyBtn element:', executeBuyBtn);
+        console.log('buyPanelClose element:', buyPanelClose);
+
+        buyTonnage?.addEventListener('input', () => this.calculateBuy());
         document.getElementById('buyDestination')?.addEventListener('change', () => this.calculateBuy());
-        document.getElementById('buyLMEOption')?.addEventListener('click', () => this.selectExchange('LME'));
-        document.getElementById('buyCOMEXOption')?.addEventListener('click', () => this.selectExchange('COMEX'));
+        document.getElementById('buyLMEOption')?.addEventListener('click', (e) => this.selectExchange('LME', e));
+        document.getElementById('buyCOMEXOption')?.addEventListener('click', (e) => this.selectExchange('COMEX', e));
         document.getElementById('fobOption')?.addEventListener('click', () => this.selectShipping('FOB'));
         document.getElementById('cifOption')?.addEventListener('click', () => this.selectShipping('CIF'));
-        document.getElementById('executeBuyBtn')?.addEventListener('click', () => this.executeBuy());
-        document.getElementById('buyPanelClose')?.addEventListener('click', () => this.close());
+        executeBuyBtn?.addEventListener('click', () => {
+            console.log('EXECUTE BUY CLICKED!');
+            this.executeBuy();
+        });
+        buyPanelClose?.addEventListener('click', () => {
+            console.log('CLOSE CLICKED!');
+            this.close();
+        });
 
         // Sell panel event listeners
         document.getElementById('sellInventory')?.addEventListener('change', () => this.calculateSell());
         document.getElementById('sellTonnage')?.addEventListener('input', () => this.calculateSell());
-        document.getElementById('executeSellBtn')?.addEventListener('click', () => this.executeSell());
-        document.getElementById('sellPanelClose')?.addEventListener('click', () => this.close());
+        document.getElementById('executeSellBtn')?.addEventListener('click', () => {
+            console.log('EXECUTE SELL CLICKED!');
+            this.executeSell();
+        });
+        document.getElementById('sellPanelClose')?.addEventListener('click', () => {
+            console.log('SELL CLOSE CLICKED!');
+            this.close();
+        });
+
+        console.log('TradePanel.init() completed');
     },
 
     startDrag(e, panelId) {
@@ -100,6 +122,7 @@ const TradePanel = {
     },
 
     close() {
+        console.log('TradePanel.close() called');
         document.getElementById('buyPanel').classList.remove('active');
         document.getElementById('sellPanel').classList.remove('active');
     },
@@ -113,11 +136,13 @@ const TradePanel = {
         panel.style.top = `${(windowHeight - 500) / 2}px`;
     },
 
-    selectExchange(exchange) {
+    selectExchange(exchange, event) {
         document.querySelectorAll('#buyExchangeGroup .radio-option').forEach(opt => {
             opt.classList.remove('selected');
         });
-        event.currentTarget.classList.add('selected');
+        if (event) {
+            event.currentTarget.classList.add('selected');
+        }
         document.querySelector(`input[name="exchange"][value="${exchange}"]`).checked = true;
         this.calculateBuy();
     },
@@ -250,10 +275,12 @@ const TradePanel = {
     },
 
     executeBuy() {
+        console.log('TradePanel.executeBuy() called');
         const tonnage = parseFloat(document.getElementById('buyTonnage').value);
         const exchange = document.querySelector('input[name="exchange"]:checked').value;
         const shippingTerms = document.querySelector('input[name="shippingTerms"]:checked').value;
         const destinationKey = document.getElementById('buyDestination').value;
+        console.log('Buy params:', { tonnage, exchange, shippingTerms, destinationKey });
 
         const supplier = this.currentTrade.supplier;
         const isLTA = this.currentTrade.isLTA;
