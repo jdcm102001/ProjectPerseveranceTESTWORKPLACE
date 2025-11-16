@@ -1,3 +1,6 @@
+import { GAME_STATE } from './game-state.js';
+import { PositionsWidget } from '../widgets/positions-widget.js';
+
 const TradePanel = {
     currentTrade: {},
     isDragging: false,

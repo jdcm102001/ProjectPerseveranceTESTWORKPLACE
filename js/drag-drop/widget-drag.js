@@ -1,6 +1,8 @@
 import { panelState, dragState } from './drag-state.js';
 import { redistributePanels, applyPanelLayout } from './panel-resize.js';
 import { setupTabDropZones, switchTab, closeWidget, handleTabDragStart, handleTabDragEnd } from './tab-drag.js';
+import { MarketsWidget } from '../widgets/markets-widget.js';
+import { PositionsWidget } from '../widgets/positions-widget.js';
 
 /* ==========================================
    WIDGET DRAG & DROP HANDLERS

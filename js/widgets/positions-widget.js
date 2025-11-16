@@ -1,3 +1,6 @@
+import { GAME_STATE } from '../core/game-state.js';
+import { showSaleDetails } from '../core/game-controls.js';
+
 const PositionsWidget = {
     positions: [],
 
