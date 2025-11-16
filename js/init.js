@@ -10,6 +10,7 @@ import { advanceTurn, toggleSidebar, toggleTheme, showSaleDetails, closeSaleDeta
 // Import widget modules
 import { MarketsWidget } from './widgets/markets-widget.js';
 import { FuturesWidget } from './widgets/futures-widget.js';
+import { PositionsWidget } from './widgets/positions-widget.js';
 
 // Import drag & drop modules
 import {
@@ -17,7 +18,8 @@ import {
     handleWidgetDragEnd,
     handlePanelDragOver,
     handlePanelDragLeave,
-    handlePanelDrop
+    handlePanelDrop,
+    createWidgetContent
 } from './drag-drop/widget-drag.js';
 
 import {
@@ -80,6 +82,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupInitialTabs();
     setupTabDropZones();
+
+    // Populate pre-loaded widget content
+    async function populateInitialWidgets() {
+        // Panel A: Positions and Futures
+        const panelA = document.getElementById('panelA');
+        const panelAContent = panelA.querySelector('.panel-content');
+
+        const positionsContent = await createWidgetContent('Positions', true);
+        panelAContent.appendChild(positionsContent);
+
+        const futuresContent = await createWidgetContent('Futures', false);
+        panelAContent.appendChild(futuresContent);
+
+        // Panel B: Markets
+        const panelB = document.getElementById('panelB');
+        const panelBContent = panelB.querySelector('.panel-content');
+
+        const marketsContent = await createWidgetContent('Markets', true);
+        panelBContent.appendChild(marketsContent);
+    }
+
+    populateInitialWidgets();
 
     // Attach event listeners for UI controls
     document.getElementById('nextTurnBtn')?.addEventListener('click', advanceTurn);

@@ -1,12 +1,12 @@
 // Panel state management
 const panelState = {
-    A: [],
+    A: ['Positions', 'Futures'],
     B: ['Markets'],
     C: []
 };
 
 const panelFlexValues = {
-    A: 0,
+    A: 1,
     B: 1,
     C: 0
 };

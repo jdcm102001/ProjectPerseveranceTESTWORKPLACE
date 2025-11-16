@@ -101,16 +101,32 @@
         <!-- Workspace (3-Panel Area) -->
         <div class="workspace" id="workspace">
             <!-- Panel A -->
-            <div class="panel-zone empty" id="panelA" data-panel="A"></div>
+            <div class="panel-zone" id="panelA" data-panel="A">
+                <div class="panel-container">
+                    <div class="panel-header">
+                        <div class="panel-tab active" data-widget="Positions" data-source-panel="A">
+                            <span class="panel-tab-name">Positions</span>
+                            <span class="close-btn" data-close-panel="A" data-close-widget="Positions">×</span>
+                        </div>
+                        <div class="panel-tab" data-widget="Futures" data-source-panel="A">
+                            <span class="panel-tab-name">Futures</span>
+                            <span class="close-btn" data-close-panel="A" data-close-widget="Futures">×</span>
+                        </div>
+                    </div>
+                    <div class="panel-content">
+                        <!-- Widget content will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
 
             <!-- Divider A-B -->
-            <div class="panel-divider" data-divider="A-B" style="display: none;"></div>
+            <div class="panel-divider" data-divider="A-B"></div>
 
             <!-- Panel B (Markets Pre-loaded) -->
             <div class="panel-zone" id="panelB" data-panel="B">
                 <div class="panel-container">
                     <div class="panel-header">
-                        <div class="panel-tab active" data-widget="Markets">
+                        <div class="panel-tab active" data-widget="Markets" data-source-panel="B">
                             <span class="panel-tab-name">Markets</span>
                             <span class="close-btn" data-close-panel="B" data-close-widget="Markets">×</span>
                         </div>
