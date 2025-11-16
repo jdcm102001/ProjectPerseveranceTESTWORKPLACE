@@ -40,6 +40,7 @@ import {
 // Make functions globally available for inline event handlers BEFORE DOMContentLoaded
 window.GAME_STATE = GAME_STATE;
 window.TradePanel = TradePanel;
+window.FuturesWidget = FuturesWidget;
 window.advanceTurn = advanceTurn;
 window.toggleSidebar = toggleSidebar;
 window.toggleTheme = toggleTheme;
