@@ -9,53 +9,34 @@ const TradePanel = {
     dragOffsetY: 0,
 
     init() {
-        console.log('TradePanel.init() called');
         const buyHeader = document.getElementById('buyPanelHeader');
         const sellHeader = document.getElementById('sellPanelHeader');
 
-        // Drag handlers
-        buyHeader.addEventListener('mousedown', (e) => this.startDrag(e, 'buyPanel'));
-        sellHeader.addEventListener('mousedown', (e) => this.startDrag(e, 'sellPanel'));
+        // Drag handlers - ONLY on mousedown, don't interfere with clicks
+        if (buyHeader) {
+            buyHeader.addEventListener('mousedown', (e) => {
+                // Don't start drag if clicking on buttons
+                if (e.target.tagName === 'BUTTON') return;
+                this.startDrag(e, 'buyPanel');
+            });
+        }
+
+        if (sellHeader) {
+            sellHeader.addEventListener('mousedown', (e) => {
+                // Don't start drag if clicking on buttons
+                if (e.target.tagName === 'BUTTON') return;
+                this.startDrag(e, 'sellPanel');
+            });
+        }
 
         document.addEventListener('mousemove', (e) => this.drag(e));
         document.addEventListener('mouseup', () => this.stopDrag());
 
-        // Buy panel event listeners
-        const buyTonnage = document.getElementById('buyTonnage');
-        const executeBuyBtn = document.getElementById('executeBuyBtn');
-        const buyPanelClose = document.getElementById('buyPanelClose');
-
-        console.log('executeBuyBtn element:', executeBuyBtn);
-        console.log('buyPanelClose element:', buyPanelClose);
-
-        buyTonnage?.addEventListener('input', () => this.calculateBuy());
+        // Input change listeners ONLY (buttons use inline onclick)
+        document.getElementById('buyTonnage')?.addEventListener('input', () => this.calculateBuy());
         document.getElementById('buyDestination')?.addEventListener('change', () => this.calculateBuy());
-        document.getElementById('buyLMEOption')?.addEventListener('click', (e) => this.selectExchange('LME', e));
-        document.getElementById('buyCOMEXOption')?.addEventListener('click', (e) => this.selectExchange('COMEX', e));
-        document.getElementById('fobOption')?.addEventListener('click', () => this.selectShipping('FOB'));
-        document.getElementById('cifOption')?.addEventListener('click', () => this.selectShipping('CIF'));
-        executeBuyBtn?.addEventListener('click', () => {
-            console.log('EXECUTE BUY CLICKED!');
-            this.executeBuy();
-        });
-        buyPanelClose?.addEventListener('click', () => {
-            console.log('CLOSE CLICKED!');
-            this.close();
-        });
-
-        // Sell panel event listeners
         document.getElementById('sellInventory')?.addEventListener('change', () => this.calculateSell());
         document.getElementById('sellTonnage')?.addEventListener('input', () => this.calculateSell());
-        document.getElementById('executeSellBtn')?.addEventListener('click', () => {
-            console.log('EXECUTE SELL CLICKED!');
-            this.executeSell();
-        });
-        document.getElementById('sellPanelClose')?.addEventListener('click', () => {
-            console.log('SELL CLOSE CLICKED!');
-            this.close();
-        });
-
-        console.log('TradePanel.init() completed');
     },
 
     startDrag(e, panelId) {
@@ -122,7 +103,6 @@ const TradePanel = {
     },
 
     close() {
-        console.log('TradePanel.close() called');
         document.getElementById('buyPanel').classList.remove('active');
         document.getElementById('sellPanel').classList.remove('active');
     },
@@ -275,12 +255,10 @@ const TradePanel = {
     },
 
     executeBuy() {
-        console.log('TradePanel.executeBuy() called');
         const tonnage = parseFloat(document.getElementById('buyTonnage').value);
         const exchange = document.querySelector('input[name="exchange"]:checked').value;
         const shippingTerms = document.querySelector('input[name="shippingTerms"]:checked').value;
         const destinationKey = document.getElementById('buyDestination').value;
-        console.log('Buy params:', { tonnage, exchange, shippingTerms, destinationKey });
 
         const supplier = this.currentTrade.supplier;
         const isLTA = this.currentTrade.isLTA;
