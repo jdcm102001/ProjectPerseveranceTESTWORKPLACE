@@ -70,6 +70,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
     document.getElementById('closeSaleDetailsBtn')?.addEventListener('click', closeSaleDetails);
 
+    // Attach event listeners for close buttons (using event delegation)
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('close-btn')) {
+            const panel = e.target.dataset.closePanel;
+            const widget = e.target.dataset.closeWidget;
+            if (panel && widget) {
+                closeWidget(panel, widget);
+            }
+        }
+    });
+
     // Load saved theme
     const savedTheme = localStorage.getItem('theme') || 'dark';
     const html = document.documentElement;

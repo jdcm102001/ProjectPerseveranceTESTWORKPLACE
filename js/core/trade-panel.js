@@ -11,11 +11,28 @@ const TradePanel = {
         const buyHeader = document.getElementById('buyPanelHeader');
         const sellHeader = document.getElementById('sellPanelHeader');
 
+        // Drag handlers
         buyHeader.addEventListener('mousedown', (e) => this.startDrag(e, 'buyPanel'));
         sellHeader.addEventListener('mousedown', (e) => this.startDrag(e, 'sellPanel'));
 
         document.addEventListener('mousemove', (e) => this.drag(e));
         document.addEventListener('mouseup', () => this.stopDrag());
+
+        // Buy panel event listeners
+        document.getElementById('buyTonnage')?.addEventListener('input', () => this.calculateBuy());
+        document.getElementById('buyDestination')?.addEventListener('change', () => this.calculateBuy());
+        document.getElementById('buyLMEOption')?.addEventListener('click', () => this.selectExchange('LME'));
+        document.getElementById('buyCOMEXOption')?.addEventListener('click', () => this.selectExchange('COMEX'));
+        document.getElementById('fobOption')?.addEventListener('click', () => this.selectShipping('FOB'));
+        document.getElementById('cifOption')?.addEventListener('click', () => this.selectShipping('CIF'));
+        document.getElementById('executeBuyBtn')?.addEventListener('click', () => this.executeBuy());
+        document.getElementById('buyPanelClose')?.addEventListener('click', () => this.close());
+
+        // Sell panel event listeners
+        document.getElementById('sellInventory')?.addEventListener('change', () => this.calculateSell());
+        document.getElementById('sellTonnage')?.addEventListener('input', () => this.calculateSell());
+        document.getElementById('executeSellBtn')?.addEventListener('click', () => this.executeSell());
+        document.getElementById('sellPanelClose')?.addEventListener('click', () => this.close());
     },
 
     startDrag(e, panelId) {
