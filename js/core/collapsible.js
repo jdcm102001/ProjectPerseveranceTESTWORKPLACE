@@ -35,14 +35,22 @@ function initCollapsibles() {
         if (!content) return;
 
         content.classList.add('collapsible-content');
-        content.style.transition = 'max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease';
+
+        // CRITICAL: Set proper CSS for collapse/expand animation
+        content.style.transition = 'max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease';
         content.style.overflow = 'hidden';
 
-        // Set initial max-height
-        const initialHeight = content.scrollHeight;
-        content.style.maxHeight = initialHeight + 'px';
+        // START EXPANDED - set to actual height
+        content.style.maxHeight = 'none'; // Allow natural height
         content.style.opacity = '1';
         content.dataset.expanded = 'true';
+
+        // Store original padding/margin
+        const computedStyle = window.getComputedStyle(content);
+        content.dataset.originalPaddingTop = computedStyle.paddingTop;
+        content.dataset.originalPaddingBottom = computedStyle.paddingBottom;
+        content.dataset.originalMarginTop = computedStyle.marginTop;
+        content.dataset.originalMarginBottom = computedStyle.marginBottom;
 
         // Click handler to toggle
         title.addEventListener('click', (e) => {
@@ -54,31 +62,50 @@ function initCollapsibles() {
             const isExpanded = content.dataset.expanded === 'true';
 
             if (isExpanded) {
-                // COLLAPSE
-                content.style.maxHeight = '0';
-                content.style.opacity = '0';
-                content.style.marginTop = '0';
-                content.style.marginBottom = '0';
-                indicator.style.transform = 'rotate(-90deg)';
-                indicator.textContent = '▶';
-                content.dataset.expanded = 'false';
+                // COLLAPSE - hide content, space adjusts
+                const currentHeight = content.scrollHeight;
+
+                // Set explicit height first (for transition)
+                content.style.maxHeight = currentHeight + 'px';
+
+                // Force reflow
+                content.offsetHeight;
+
+                // Now collapse to 0
+                requestAnimationFrame(() => {
+                    content.style.maxHeight = '0';
+                    content.style.opacity = '0';
+                    content.style.paddingTop = '0';
+                    content.style.paddingBottom = '0';
+                    content.style.marginTop = '0';
+                    content.style.marginBottom = '0';
+                    indicator.style.transform = 'rotate(-90deg)';
+                    indicator.textContent = '▶';
+                    content.dataset.expanded = 'false';
+                });
             } else {
-                // EXPAND
-                const newHeight = content.scrollHeight;
-                content.style.maxHeight = newHeight + 'px';
+                // EXPAND - show content, space adjusts
+                const targetHeight = content.scrollHeight;
+
+                // Restore padding/margin first
+                content.style.paddingTop = content.dataset.originalPaddingTop || '';
+                content.style.paddingBottom = content.dataset.originalPaddingBottom || '';
+                content.style.marginTop = content.dataset.originalMarginTop || '';
+                content.style.marginBottom = content.dataset.originalMarginBottom || '';
+
+                // Expand to calculated height
+                content.style.maxHeight = targetHeight + 'px';
                 content.style.opacity = '1';
-                content.style.marginTop = '';
-                content.style.marginBottom = '';
                 indicator.style.transform = 'rotate(0deg)';
                 indicator.textContent = '▼';
                 content.dataset.expanded = 'true';
 
-                // Update max-height after transition in case content changed
+                // After transition, remove max-height constraint
                 setTimeout(() => {
                     if (content.dataset.expanded === 'true') {
-                        content.style.maxHeight = content.scrollHeight + 'px';
+                        content.style.maxHeight = 'none';
                     }
-                }, 350);
+                }, 400);
             }
         });
     });
