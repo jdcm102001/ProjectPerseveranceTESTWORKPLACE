@@ -1,5 +1,6 @@
 import { GAME_STATE } from '../core/game-state.js';
 import { showSaleDetails } from '../core/game-controls.js';
+import { refreshCollapsibles } from '../core/collapsible.js';
 
 const PositionsWidget = {
     positions: [],
@@ -189,6 +190,7 @@ const PositionsWidget = {
         html += `</tbody></table>`;
         container.innerHTML = html;
         this.renderMatchStats();
+        refreshCollapsibles();
     },
 
     renderMatchStats() {

@@ -6,6 +6,7 @@
 import { GAME_STATE } from './core/game-state.js';
 import { TradePanel } from './core/trade-panel.js';
 import { advanceTurn, toggleSidebar, toggleTheme, showSaleDetails, closeSaleDetails } from './core/game-controls.js';
+import { initCollapsibles, refreshCollapsibles } from './core/collapsible.js';
 
 // Import widget modules
 import { MarketsWidget } from './widgets/markets-widget.js';
@@ -104,6 +105,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     populateInitialWidgets();
+
+    // Initialize collapsible sections after widgets load
+    setTimeout(() => {
+        initCollapsibles();
+    }, 500);
 
     // Attach event listeners for UI controls
     document.getElementById('nextTurnBtn')?.addEventListener('click', advanceTurn);

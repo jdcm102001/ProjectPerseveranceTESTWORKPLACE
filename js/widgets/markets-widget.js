@@ -1,5 +1,6 @@
 import { GAME_STATE } from '../core/game-state.js';
 import { TradePanel } from '../core/trade-panel.js';
+import { refreshCollapsibles } from '../core/collapsible.js';
 
 const MarketsWidget = {
     init() {
@@ -9,6 +10,7 @@ const MarketsWidget = {
         }
         this.populateSuppliersTable();
         this.populateBuyersTable();
+        refreshCollapsibles();
     },
 
     populateSuppliersTable() {
