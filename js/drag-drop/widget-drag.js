@@ -230,9 +230,7 @@ async function createWidgetContent(widgetName, isActive) {
         `;
 
         setTimeout(() => {
-            if (typeof MarketsWidget !== 'undefined') {
-                MarketsWidget.init();
-            }
+            MarketsWidget.init();
         }, 100);
 
         return content;
@@ -247,9 +245,7 @@ async function createWidgetContent(widgetName, isActive) {
         `;
 
         setTimeout(() => {
-            if (typeof PositionsWidget !== 'undefined') {
-                PositionsWidget.init();
-            }
+            PositionsWidget.init();
         }, 100);
 
         return content;

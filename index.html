@@ -168,7 +168,7 @@
     <div class="trade-panel" id="buyPanel">
         <div class="trade-panel-header" id="buyPanelHeader">
             <span class="trade-panel-title">Buy Copper</span>
-            <button class="trade-panel-close" id="buyPanelClose">×</button>
+            <button class="trade-panel-close" id="buyPanelClose" onclick="window.TradePanel.close()">×</button>
         </div>
         <div class="trade-panel-body">
             <div class="info-box">
@@ -199,11 +199,11 @@
             <div class="form-group" id="buyExchangeGroup">
                 <label class="form-label">Exchange</label>
                 <div class="radio-group">
-                    <label class="radio-option selected" id="buyLMEOption">
+                    <label class="radio-option selected" id="buyLMEOption" onclick="window.TradePanel.selectExchange('LME', event)">
                         <input type="radio" name="exchange" value="LME" checked>
                         <div class="radio-option-label">LME M+1</div>
                     </label>
-                    <label class="radio-option" id="buyCOMEXOption">
+                    <label class="radio-option" id="buyCOMEXOption" onclick="window.TradePanel.selectExchange('COMEX', event)">
                         <input type="radio" name="exchange" value="COMEX">
                         <div class="radio-option-label">COMEX M+1</div>
                     </label>
@@ -220,12 +220,12 @@
             <div class="form-group">
                 <label class="form-label">Shipping Terms</label>
                 <div class="radio-group">
-                    <label class="radio-option selected" id="fobOption">
+                    <label class="radio-option selected" id="fobOption" onclick="window.TradePanel.selectShipping('FOB')">
                         <input type="radio" name="shippingTerms" value="FOB" checked>
                         <div class="radio-option-label">FOB</div>
                         <div class="radio-option-value" id="fobPriceDisplay">$9039/MT</div>
                     </label>
-                    <label class="radio-option" id="cifOption">
+                    <label class="radio-option" id="cifOption" onclick="window.TradePanel.selectShipping('CIF')">
                         <input type="radio" name="shippingTerms" value="CIF">
                         <div class="radio-option-label">CIF</div>
                         <div class="radio-option-value" id="cifPriceDisplay">$9070/MT</div>
@@ -260,7 +260,7 @@
                 </div>
             </div>
 
-            <button class="execute-btn" id="executeBuyBtn">PURCHASE COPPER</button>
+            <button class="execute-btn" id="executeBuyBtn" onclick="window.TradePanel.executeBuy()">PURCHASE COPPER</button>
         </div>
     </div>
 
@@ -268,7 +268,7 @@
     <div class="trade-panel" id="sellPanel">
         <div class="trade-panel-header sell" id="sellPanelHeader">
             <span class="trade-panel-title">Sell Copper</span>
-            <button class="trade-panel-close" id="sellPanelClose">×</button>
+            <button class="trade-panel-close" id="sellPanelClose" onclick="window.TradePanel.close()">×</button>
         </div>
         <div class="trade-panel-body">
             <div class="info-box">
@@ -334,7 +334,7 @@
                 </div>
             </div>
 
-            <button class="execute-btn sell" id="executeSellBtn">SELL COPPER</button>
+            <button class="execute-btn sell" id="executeSellBtn" onclick="window.TradePanel.executeSell()">SELL COPPER</button>
         </div>
     </div>
 

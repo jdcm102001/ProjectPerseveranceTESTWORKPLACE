@@ -1,5 +1,6 @@
 import { GAME_STATE } from './game-state.js';
 import { PositionsWidget } from '../widgets/positions-widget.js';
+import { MarketsWidget } from '../widgets/markets-widget.js';
 
 const TradePanel = {
     currentTrade: {},
@@ -11,11 +12,31 @@ const TradePanel = {
         const buyHeader = document.getElementById('buyPanelHeader');
         const sellHeader = document.getElementById('sellPanelHeader');
 
-        buyHeader.addEventListener('mousedown', (e) => this.startDrag(e, 'buyPanel'));
-        sellHeader.addEventListener('mousedown', (e) => this.startDrag(e, 'sellPanel'));
+        // Drag handlers - ONLY on mousedown, don't interfere with clicks
+        if (buyHeader) {
+            buyHeader.addEventListener('mousedown', (e) => {
+                // Don't start drag if clicking on buttons
+                if (e.target.tagName === 'BUTTON') return;
+                this.startDrag(e, 'buyPanel');
+            });
+        }
+
+        if (sellHeader) {
+            sellHeader.addEventListener('mousedown', (e) => {
+                // Don't start drag if clicking on buttons
+                if (e.target.tagName === 'BUTTON') return;
+                this.startDrag(e, 'sellPanel');
+            });
+        }
 
         document.addEventListener('mousemove', (e) => this.drag(e));
         document.addEventListener('mouseup', () => this.stopDrag());
+
+        // Input change listeners ONLY (buttons use inline onclick)
+        document.getElementById('buyTonnage')?.addEventListener('input', () => this.calculateBuy());
+        document.getElementById('buyDestination')?.addEventListener('change', () => this.calculateBuy());
+        document.getElementById('sellInventory')?.addEventListener('change', () => this.calculateSell());
+        document.getElementById('sellTonnage')?.addEventListener('input', () => this.calculateSell());
     },
 
     startDrag(e, panelId) {
@@ -95,11 +116,13 @@ const TradePanel = {
         panel.style.top = `${(windowHeight - 500) / 2}px`;
     },
 
-    selectExchange(exchange) {
+    selectExchange(exchange, event) {
         document.querySelectorAll('#buyExchangeGroup .radio-option').forEach(opt => {
             opt.classList.remove('selected');
         });
-        event.currentTarget.classList.add('selected');
+        if (event) {
+            event.currentTarget.classList.add('selected');
+        }
         document.querySelector(`input[name="exchange"][value="${exchange}"]`).checked = true;
         this.calculateBuy();
     },
@@ -283,15 +306,9 @@ const TradePanel = {
         alert(`✅ Purchase Executed!\n\n${tonnage} MT from ${supplier}\nTotal Cost: $${Math.round(totalCost).toLocaleString('en-US')}\nPaid from Funds: $${Math.round(position.paidFromFunds).toLocaleString('en-US')}\nPaid from LOC: $${Math.round(position.paidFromLOC).toLocaleString('en-US')}\n\nTravel Time: ${position.travelTimeDays} days\nArrival: ${arrivalMonth}\n\nRemaining this month: ${purchaseCheck.remaining - tonnage}MT`);
         this.close();
 
-        // Refresh markets widget
-        if (typeof MarketsWidget !== 'undefined') {
-            MarketsWidget.init();
-        }
-
-        // Refresh positions widget
-        if (typeof PositionsWidget !== 'undefined') {
-            PositionsWidget.init();
-        }
+        // Refresh widgets
+        MarketsWidget.init();
+        PositionsWidget.init();
     },
 
     executeSell() {
@@ -334,15 +351,9 @@ const TradePanel = {
         alert(`✅ Sale Executed!\n\n${tonnage} MT to ${region}\nRevenue: $${Math.round(totalRevenue).toLocaleString('en-US')}\nProfit: $${Math.round(profit).toLocaleString('en-US')}\n\nRemaining this month: ${saleCheck.remaining - tonnage}MT`);
         this.close();
 
-        // Refresh markets widget
-        if (typeof MarketsWidget !== 'undefined') {
-            MarketsWidget.init();
-        }
-
-        // Refresh positions widget
-        if (typeof PositionsWidget !== 'undefined') {
-            PositionsWidget.init();
-        }
+        // Refresh widgets
+        MarketsWidget.init();
+        PositionsWidget.init();
     },
 
     getMonthName(turn) {

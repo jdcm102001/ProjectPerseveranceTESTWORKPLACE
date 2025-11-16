@@ -70,6 +70,42 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
     document.getElementById('closeSaleDetailsBtn')?.addEventListener('click', closeSaleDetails);
 
+    // Attach event listeners for close buttons (using event delegation)
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('close-btn')) {
+            const panel = e.target.dataset.closePanel;
+            const widget = e.target.dataset.closeWidget;
+            if (panel && widget) {
+                closeWidget(panel, widget);
+            }
+        }
+
+        // Handle buy button clicks
+        if (e.target.classList.contains('buy-btn') && !e.target.disabled) {
+            const supplier = e.target.dataset.supplier;
+            const port = e.target.dataset.port;
+            const minMT = parseFloat(e.target.dataset.min);
+            const maxMT = parseFloat(e.target.dataset.max);
+            const basis = e.target.dataset.basis;
+            const premium = parseFloat(e.target.dataset.premium);
+            const isLTA = e.target.dataset.islta === 'true';
+
+            TradePanel.openBuy(supplier, port, minMT, maxMT, basis, premium, isLTA);
+        }
+
+        // Handle sell button clicks
+        if (e.target.classList.contains('sell-btn') && !e.target.disabled) {
+            const buyer = e.target.dataset.buyer;
+            const dest = e.target.dataset.dest;
+            const minMT = parseFloat(e.target.dataset.min);
+            const maxMT = parseFloat(e.target.dataset.max);
+            const exchange = e.target.dataset.exchange;
+            const premium = parseFloat(e.target.dataset.premium);
+
+            TradePanel.openSell(buyer, dest, minMT, maxMT, exchange, premium);
+        }
+    });
+
     // Load saved theme
     const savedTheme = localStorage.getItem('theme') || 'dark';
     const html = document.documentElement;
