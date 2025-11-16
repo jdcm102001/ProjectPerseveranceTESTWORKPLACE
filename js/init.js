@@ -72,6 +72,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Attach event listeners for close buttons (using event delegation)
     document.addEventListener('click', (e) => {
+        console.log('Click detected on:', e.target);
+        console.log('Classes:', e.target.className);
+        console.log('Is buy-btn?', e.target.classList.contains('buy-btn'));
+        console.log('Is sell-btn?', e.target.classList.contains('sell-btn'));
+
         if (e.target.classList.contains('close-btn')) {
             const panel = e.target.dataset.closePanel;
             const widget = e.target.dataset.closeWidget;
@@ -82,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Handle buy button clicks
         if (e.target.classList.contains('buy-btn') && !e.target.disabled) {
+            console.log('BUY BUTTON CLICKED! Opening trade panel...');
             const supplier = e.target.dataset.supplier;
             const port = e.target.dataset.port;
             const minMT = parseFloat(e.target.dataset.min);
@@ -95,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Handle sell button clicks
         if (e.target.classList.contains('sell-btn') && !e.target.disabled) {
+            console.log('SELL BUTTON CLICKED! Opening trade panel...');
             const buyer = e.target.dataset.buyer;
             const dest = e.target.dataset.dest;
             const minMT = parseFloat(e.target.dataset.min);
