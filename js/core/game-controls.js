@@ -1,6 +1,7 @@
 import { GAME_STATE } from './game-state.js';
 import { PositionsWidget } from '../widgets/positions-widget.js';
 import { MarketsWidget } from '../widgets/markets-widget.js';
+import { FuturesWidget } from '../widgets/futures-widget.js';
 
 function advanceTurn() {
     if (!confirm(`Advance to next turn?\n\nThis will:\n- Charge interest on LOC: $${Math.round(GAME_STATE.locInterestNextMonth).toLocaleString('en-US')}\n- Move to ${GAME_STATE.currentTurn === 1 ? 'February' : GAME_STATE.currentTurn === 2 ? 'March' : GAME_STATE.currentTurn === 3 ? 'April' : 'May'}\n- Reset monthly limits\n- Update position statuses`)) {
@@ -18,6 +19,9 @@ function advanceTurn() {
 
     GAME_STATE.currentTurn++;
     GAME_STATE.resetMonthlyLimits();
+
+    // Update futures prices to market
+    GAME_STATE.updateFuturesPrices();
 
     // Update position statuses
     GAME_STATE.updatePositionStatus(GAME_STATE.currentTurn);
@@ -42,6 +46,7 @@ function advanceTurn() {
     // Refresh all widgets
     MarketsWidget.init();
     PositionsWidget.render();
+    FuturesWidget.render();
 
     alert(`✅ Advanced to ${GAME_STATE.currentMonth}!\n\nInterest Charged: $${Math.round(interestCharged).toLocaleString('en-US')}\nMonthly limits reset.\n${GAME_STATE.physicalPositions.filter(p => p.status === 'ARRIVED').length} position(s) arrived.`);
 }
