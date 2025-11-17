@@ -113,6 +113,7 @@ const PositionsWidget = {
                         <th>ETA</th>
                         <th>PROJECTED P&L</th>
                         <th>STATUS</th>
+                        <th>HEDGE</th>
                         <th>MATCH</th>
                     </tr>
                 </thead>
@@ -121,7 +122,7 @@ const PositionsWidget = {
 
         sortedPositions.forEach(pos => {
             if (pos.separator) {
-                html += `<tr class="separator-row"><td colspan="8" style="padding: 0; height: 8px; background: transparent; border: none;"></td></tr>`;
+                html += `<tr class="separator-row"><td colspan="10" style="padding: 0; height: 8px; background: transparent; border: none;"></td></tr>`;
                 return;
             }
 
@@ -145,6 +146,18 @@ const PositionsWidget = {
 
             // Determine if this position has been sold
             const hasSale = pos.soldInfo !== undefined;
+
+            // Get hedge status for BUY positions
+            let hedgeStatus = '—';
+            if (pos.type === 'BUY') {
+                // Extract index from id (e.g., "BUY_2" -> 2)
+                const posIndex = parseInt(pos.id.split('_')[1]);
+                const physicalPosition = GAME_STATE.physicalPositions[posIndex];
+                if (physicalPosition && physicalPosition.status === 'OPEN') {
+                    const hedgeInfo = GAME_STATE.checkPositionHedge(physicalPosition);
+                    hedgeStatus = hedgeInfo.description;
+                }
+            }
 
             const totalInvoice = pos.tonnage * pos.price;
             const invoiceEquation = `${pos.tonnage} MT × $${Math.round(pos.price).toLocaleString('en-US')}/MT = $${Math.round(totalInvoice).toLocaleString('en-US')}`;
@@ -182,6 +195,7 @@ const PositionsWidget = {
                     <td>${pos.eta > 0 ? `${pos.eta} days` : 'Delivered'}</td>
                     <td class="${plClass}" style="font-weight: 700;">${projectedPL}</td>
                     <td><span class="status-badge ${statusClass}">${pos.arrival}</span></td>
+                    <td style="font-size: 11px; font-weight: 600;">${hedgeStatus}</td>
                     <td>${matchCell}</td>
                 </tr>
             `;
