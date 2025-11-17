@@ -474,6 +474,146 @@ const GAME_STATE = {
         };
     },
 
+    /**
+     * Calculate price exposure for all open physical positions
+     * Detects hedges via futures and calculates unhedged risk
+     * Returns risk level: LOW, MODERATE, HIGH, EXTREME
+     */
+    calculatePriceExposure() {
+        // If no physical positions, no exposure
+        if (this.physicalPositions.length === 0 || !this.physicalPositions.some(p => p.status === 'OPEN')) {
+            return {
+                totalExposure: 0,
+                exposurePercentage: 0,
+                riskLevel: 'LOW',
+                riskColor: '#10b981',
+                riskIcon: '🟢',
+                positionBreakdown: [],
+                hasHighRisk: false
+            };
+        }
+
+        const positionBreakdown = [];
+        let totalUnhedgedExposure = 0;
+
+        this.physicalPositions.forEach(position => {
+            // Only analyze OPEN physical positions
+            if (position.status !== 'OPEN') return;
+
+            // Get current market price for this position
+            const monthData = this.currentMonthData;
+            const pricing = position.exchange === 'LME' ? monthData.PRICING.LME : monthData.PRICING.COMEX;
+            const currentPrice = pricing.SPOT_AVG;  // Use spot price as mark-to-market
+
+            // Calculate total position value
+            const positionValue = position.tonnage * currentPrice;
+
+            // Check if position is hedged by futures
+            const hedgeInfo = this.checkPositionHedge(position);
+
+            // Calculate unhedged exposure
+            const unhedgedTonnage = position.tonnage * (1 - hedgeInfo.coveragePercentage);
+            const unhedgedExposure = unhedgedTonnage * currentPrice;
+
+            totalUnhedgedExposure += unhedgedExposure;
+
+            positionBreakdown.push({
+                positionId: position.id,
+                supplier: position.supplier,
+                tonnage: position.tonnage,
+                exchange: position.exchange,
+                currentPrice: currentPrice,
+                positionValue: positionValue,
+                hedgeStatus: hedgeInfo.status,
+                hedgeCoverage: hedgeInfo.coveragePercentage,
+                unhedgedExposure: unhedgedExposure
+            });
+        });
+
+        // Calculate exposure as percentage of practice funds
+        const exposurePercentage = this.practiceFunds > 0 ? (totalUnhedgedExposure / this.practiceFunds) * 100 : 0;
+
+        // Determine risk level
+        let riskLevel, riskColor, riskIcon;
+        if (exposurePercentage === 0) {
+            riskLevel = 'LOW';
+            riskColor = '#10b981';
+            riskIcon = '🟢';
+        } else if (exposurePercentage < 30) {
+            riskLevel = 'MODERATE';
+            riskColor = '#fbbf24';
+            riskIcon = '🟡';
+        } else if (exposurePercentage < 50) {
+            riskLevel = 'HIGH';
+            riskColor = '#ef4444';
+            riskIcon = '🔴';
+        } else {
+            riskLevel = 'EXTREME';
+            riskColor = '#dc2626';
+            riskIcon = '🔴';
+        }
+
+        return {
+            totalExposure: totalUnhedgedExposure,
+            exposurePercentage: exposurePercentage,
+            riskLevel: riskLevel,
+            riskColor: riskColor,
+            riskIcon: riskIcon,
+            positionBreakdown: positionBreakdown,
+            hasHighRisk: exposurePercentage >= 30
+        };
+    },
+
+    /**
+     * Check if a physical position is hedged by futures positions
+     * Returns hedge status and coverage percentage
+     */
+    checkPositionHedge(physicalPosition) {
+        // Physical positions are "LONG" (we own copper), so we need SHORT futures to hedge
+        const requiredDirection = 'SHORT';
+        const requiredExchange = physicalPosition.exchange;
+
+        // Find matching futures positions
+        const matchingFutures = this.futuresPositions.filter(fp =>
+            fp.exchange === requiredExchange &&
+            fp.direction === requiredDirection
+        );
+
+        if (matchingFutures.length === 0) {
+            return {
+                status: 'NONE',
+                coveragePercentage: 0,
+                description: '🔴 UNHEDGED'
+            };
+        }
+
+        // Calculate total hedged tonnage
+        const totalHedgedTonnage = matchingFutures.reduce((sum, fp) => sum + fp.tonnage, 0);
+
+        // Calculate coverage percentage (allow tolerance)
+        const coveragePercentage = Math.min(totalHedgedTonnage / physicalPosition.tonnage, 1);
+
+        // Determine hedge status
+        let status, description;
+        if (coveragePercentage >= 0.8) {  // 80%+ coverage
+            status = 'FULL';
+            description = '🟢 FULLY HEDGED';
+        } else if (coveragePercentage >= 0.3) {  // 30-80% coverage
+            status = 'PARTIAL';
+            description = `🟡 PARTIAL (${Math.round(coveragePercentage * 100)}%)`;
+        } else {  // <30% coverage
+            status = 'NONE';
+            description = '🔴 UNHEDGED';
+        }
+
+        return {
+            status: status,
+            coveragePercentage: coveragePercentage,
+            description: description,
+            matchingFutures: matchingFutures.length
+        };
+    },
+
     closeFuturesPosition(positionId) {
         const position = this.futuresPositions.find(p => p.id === positionId);
         if (!position) {
