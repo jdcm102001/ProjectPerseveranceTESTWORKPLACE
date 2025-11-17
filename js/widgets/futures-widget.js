@@ -292,8 +292,8 @@ const FuturesWidget = {
                 <td>${c.size}</td>
                 <td>$${Math.round(c.price).toLocaleString('en-US')}/MT</td>
                 <td>
-                    <button class="trade-btn buy-btn" onclick="FuturesWidget.openPosition('${c.exchange}', '${c.contract}', 'LONG')">LONG</button>
-                    <button class="trade-btn sell-btn" onclick="FuturesWidget.openPosition('${c.exchange}', '${c.contract}', 'SHORT')">SHORT</button>
+                    <button class="trade-btn futures-long-btn" onclick="FuturesWidget.openPosition('${c.exchange}', '${c.contract}', 'LONG')">LONG</button>
+                    <button class="trade-btn futures-short-btn" onclick="FuturesWidget.openPosition('${c.exchange}', '${c.contract}', 'SHORT')">SHORT</button>
                 </td>
             </tr>
         `;
@@ -722,7 +722,7 @@ const FuturesWidget = {
                         </div>
                     </div>
 
-                    <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" style="
+                    <button onclick='this.closest("div[style*=\\"position: fixed\\"]").remove()' style="
                         width: 100%;
                         background: linear-gradient(135deg, #3b82f6, #2563eb);
                         border: none;
