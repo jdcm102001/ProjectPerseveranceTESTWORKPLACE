@@ -520,7 +520,6 @@ const GAME_STATE = {
 
     updateFuturesPrices() {
         const monthData = this.currentMonthData;
-        let marginCallsTriggered = [];
 
         this.futuresPositions.forEach(position => {
             // Get current price
@@ -542,52 +541,13 @@ const GAME_STATE = {
             const priceDiff = currentPrice - position.entryPrice;
             const plMultiplier = position.direction === 'LONG' ? 1 : -1;
             position.unrealizedPL = priceDiff * spec.priceMultiplier * position.numContracts * plMultiplier;
-
-            // Update margin balance
-            position.marginBalance = position.initialMargin + position.unrealizedPL;
-
-            // Check for margin call
-            if (position.marginBalance < position.initialMargin) {
-                const topUp = position.initialMargin - position.marginBalance;
-
-                if (this.practiceFunds >= topUp) {
-                    // Can top up
-                    this.practiceFunds -= topUp;
-                    position.marginBalance = position.initialMargin;
-                    position.initialMargin += topUp;
-                    this.futuresMarginPosted += topUp;
-
-                    marginCallsTriggered.push({
-                        position: position,
-                        topUp: topUp,
-                        forceClosed: false
-                    });
-                } else {
-                    // Force liquidation
-                    this.forceLiquidatePosition(position);
-                    marginCallsTriggered.push({
-                        position: position,
-                        topUp: topUp,
-                        forceClosed: true
-                    });
-                }
-            }
         });
 
-        // Show margin call alerts
-        if (marginCallsTriggered.length > 0) {
-            let message = '⚠️ MARGIN CALL ALERT\n\n';
-            marginCallsTriggered.forEach(mc => {
-                if (mc.forceClosed) {
-                    message += `💀 FORCE LIQUIDATED: ${mc.position.exchange} ${mc.position.contract} ${mc.position.direction}\n`;
-                    message += `   Insufficient funds for $${Math.round(mc.topUp).toLocaleString('en-US')} top-up\n\n`;
-                } else {
-                    message += `✅ TOPPED UP: ${mc.position.exchange} ${mc.position.contract} ${mc.position.direction}\n`;
-                    message += `   Added: $${Math.round(mc.topUp).toLocaleString('en-US')}\n\n`;
-                }
-            });
-            alert(message);
-        }
+        // Recalculate total margin with netting after price updates
+        const marginCalc = this.calculateMarginWithNetting();
+        this.futuresMarginPosted = marginCalc.totalMargin;
+
+        this.updateHeader();
 
         // Check for expiries
         this.checkFuturesExpiry();
@@ -599,23 +559,19 @@ const GAME_STATE = {
 
         const spec = this.FUTURES_SPECS[position.exchange];
         const closingFees = spec.closeFee * position.numContracts;
-        const finalPL = position.marginBalance - position.initialMargin;
 
-        // Return remaining margin (could be negative)
-        if (position.marginBalance > 0) {
-            this.practiceFunds += position.marginBalance;
-        }
-
-        // Deduct closing fees
-        this.practiceFunds -= closingFees;
-
-        // Update totals
-        this.totalPL += finalPL;
-        this.totalFuturesPL += finalPL;
-        this.futuresMarginPosted -= position.initialMargin;
-
-        // Remove position
+        // Remove position first
         this.futuresPositions.splice(index, 1);
+
+        // Recalculate margin with netting
+        const marginCalc = this.calculateMarginWithNetting();
+        this.futuresMarginPosted = marginCalc.totalMargin;
+
+        // Settle P&L
+        this.practiceFunds += position.unrealizedPL;
+        this.practiceFunds -= closingFees;
+        this.totalPL += position.unrealizedPL;
+        this.totalFuturesPL += position.unrealizedPL;
 
         this.updateHeader();
     },
@@ -626,6 +582,8 @@ const GAME_STATE = {
         if (expiringPositions.length === 0) return;
 
         let expiryMessage = '📅 CONTRACT EXPIRY\n\n';
+        let totalPL = 0;
+        let totalFees = 0;
 
         expiringPositions.forEach(position => {
             const index = this.futuresPositions.indexOf(position);
@@ -633,27 +591,32 @@ const GAME_STATE = {
 
             const spec = this.FUTURES_SPECS[position.exchange];
             const closingFees = spec.closeFee * position.numContracts;
-            const finalPL = position.marginBalance - position.initialMargin;
 
-            // Return margin balance
-            this.practiceFunds += position.marginBalance;
-
-            // Deduct closing fees
+            // Settle P&L
+            this.practiceFunds += position.unrealizedPL;
             this.practiceFunds -= closingFees;
 
             // Update totals
-            this.totalPL += finalPL;
-            this.totalFuturesPL += finalPL;
-            this.futuresMarginPosted -= position.initialMargin;
+            this.totalPL += position.unrealizedPL;
+            this.totalFuturesPL += position.unrealizedPL;
+            totalPL += position.unrealizedPL;
+            totalFees += closingFees;
 
             // Remove position
             this.futuresPositions.splice(index, 1);
 
             expiryMessage += `${position.exchange} ${position.contract} ${position.direction}\n`;
-            expiryMessage += `Final P&L: ${finalPL >= 0 ? '+' : ''}$${Math.round(finalPL).toLocaleString('en-US')}\n`;
-            expiryMessage += `Margin returned: $${Math.round(position.marginBalance).toLocaleString('en-US')}\n`;
+            expiryMessage += `Final P&L: ${position.unrealizedPL >= 0 ? '+' : ''}$${Math.round(position.unrealizedPL).toLocaleString('en-US')}\n`;
             expiryMessage += `Fees: $${closingFees.toLocaleString('en-US')}\n\n`;
         });
+
+        // Recalculate margin after removing expired positions
+        const marginCalc = this.calculateMarginWithNetting();
+        this.futuresMarginPosted = marginCalc.totalMargin;
+
+        expiryMessage += `Total P&L: ${totalPL >= 0 ? '+' : ''}$${Math.round(totalPL).toLocaleString('en-US')}\n`;
+        expiryMessage += `Total Fees: $${Math.round(totalFees).toLocaleString('en-US')}\n`;
+        expiryMessage += `Net Impact: ${(totalPL - totalFees) >= 0 ? '+' : ''}$${Math.round(totalPL - totalFees).toLocaleString('en-US')}`;
 
         this.updateHeader();
         alert(expiryMessage);
