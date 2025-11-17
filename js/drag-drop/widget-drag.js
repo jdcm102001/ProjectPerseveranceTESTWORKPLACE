@@ -204,7 +204,7 @@ async function createWidgetContent(widgetName, isActive) {
         content.innerHTML = `
             <div class="markets-widget-content">
                 <div class="section-title">🔵 Suppliers - Buy Copper</div>
-                <table class="markets-table">
+                <table class="markets-table" id="suppliersTable">
                     <thead>
                         <tr>
                             <th>SELLER</th>
@@ -218,7 +218,7 @@ async function createWidgetContent(widgetName, isActive) {
                 </table>
 
                 <div class="section-title">🟢 Buyers - Sell Copper</div>
-                <table class="markets-table">
+                <table class="markets-table" id="buyersTable">
                     <thead>
                         <tr>
                             <th>BUYER</th>
@@ -297,13 +297,17 @@ async function createWidgetContent(widgetName, isActive) {
                     <canvas id="futuresChart" style="max-height: 300px;"></canvas>
                 </div>
 
-                <!-- Contract Specifications Info -->
-                <div class="info-box" style="margin-bottom: 20px; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 15px;">
-                    <div style="font-weight: 600; margin-bottom: 10px; color: #3b82f6;">📊 Contract Specifications</div>
-                    <div style="font-size: 12px; line-height: 1.8; color: #e0e0e0;">
-                        <strong>LME:</strong> 25 MT per contract<br>
-                        <strong>COMEX:</strong> 11.34 MT per contract (25,000 lbs)<br>
-                        <em style="color: #888;">Note: When you enter tonnage, contracts round up to nearest whole contract</em>
+                <!-- Contract Specifications Info (Collapsible) -->
+                <div style="margin-bottom: 20px;">
+                    <div class="section-title" style="font-weight: 600; margin-bottom: 10px; color: #3b82f6; padding: 10px; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6;">
+                        📊 Contract Specifications
+                    </div>
+                    <div class="info-box" style="background: rgba(59, 130, 246, 0.05); border-left: 3px solid #3b82f6; padding: 15px; margin-bottom: 0;">
+                        <div style="font-size: 12px; line-height: 1.8; color: #e0e0e0;">
+                            <strong>LME:</strong> 25 MT per contract<br>
+                            <strong>COMEX:</strong> 11.34 MT per contract (25,000 lbs)<br>
+                            <em style="color: #888;">Note: Margin = $9,000 per contract | Fees = $25 open + $25 close</em>
+                        </div>
                     </div>
                 </div>
 

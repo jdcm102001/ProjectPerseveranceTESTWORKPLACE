@@ -308,69 +308,54 @@ const FuturesWidget = {
                 <thead>
                     <tr>
                         <th>CONTRACT</th>
-                        <th>DIRECTION</th>
-                        <th>CONTRACTS</th>
-                        <th>ENTRY</th>
-                        <th>CURRENT</th>
+                        <th>DIR</th>
+                        <th>SIZE</th>
+                        <th>PRICE</th>
                         <th>P&L</th>
                         <th>MARGIN</th>
-                        <th>EXPIRY</th>
-                        <th>ACTIONS</th>
+                        <th>EXP</th>
+                        <th>ACTION</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${GAME_STATE.futuresPositions.map(pos => {
                         const plClass = pos.unrealizedPL >= 0 ? 'price-positive' : 'price-negative';
-                        const directionBadge = pos.direction === 'LONG' ? 'position-badge long' : 'position-badge short';
+                        const directionBadge = pos.direction === 'LONG' ? 'badge-long' : 'badge-short';
 
                         // Calculate expiry countdown
                         const turnsUntilExpiry = pos.expiryTurn - GAME_STATE.currentTurn;
                         let expiryClass = '';
-                        let expiryIcon = '';
                         if (turnsUntilExpiry <= 1) {
-                            expiryClass = 'expiry-critical';
-                            expiryIcon = '🔴';
-                        } else if (turnsUntilExpiry <= 3) {
+                            expiryClass = 'expiry-urgent';
+                        } else if (turnsUntilExpiry <= 2) {
                             expiryClass = 'expiry-warning';
-                            expiryIcon = '🟡';
                         } else {
                             expiryClass = 'expiry-safe';
-                            expiryIcon = '🟢';
                         }
 
                         // Calculate margin health
-                        const marginHealth = (pos.marginBalance / pos.initialMargin) * 100;
+                        const marginHealth = pos.marginBalance / pos.initialMargin;
                         let marginClass = '';
-                        let marginIcon = '';
-                        if (marginHealth < 80) {
-                            marginClass = 'margin-critical';
-                            marginIcon = '⚠️';
-                        } else if (marginHealth < 100) {
-                            marginClass = 'margin-warning';
-                            marginIcon = '⚡';
-                        } else {
-                            marginClass = 'margin-healthy';
-                            marginIcon = '✅';
+                        if (marginHealth < 1.0) {
+                            marginClass = 'price-negative';
+                        } else if (marginHealth < 1.1) {
+                            marginClass = 'price-warning';
                         }
 
                         return `
                             <tr>
-                                <td><span class="exchange-badge">${pos.exchange}</span> <strong>${pos.contract}</strong></td>
+                                <td>
+                                    <span class="exchange-badge">${pos.exchange}</span><br>
+                                    <strong>${pos.contract}</strong>
+                                </td>
                                 <td><span class="${directionBadge}">${pos.direction}</span></td>
-                                <td>${pos.numContracts} contract${pos.numContracts > 1 ? 's' : ''}<br><span style="font-size: 11px; color: #888;">(${pos.tonnage.toFixed(2)} MT)</span></td>
-                                <td>$${Math.round(pos.entryPrice).toLocaleString('en-US')}</td>
+                                <td title="${pos.numContracts} contracts">${pos.tonnage.toFixed(1)} MT</td>
                                 <td>$${Math.round(pos.currentPrice).toLocaleString('en-US')}</td>
                                 <td class="${plClass}">${pos.unrealizedPL >= 0 ? '+' : ''}$${Math.round(pos.unrealizedPL).toLocaleString('en-US')}</td>
-                                <td class="${marginClass}">
-                                    ${marginIcon} $${Math.round(pos.marginBalance).toLocaleString('en-US')}<br>
-                                    <span style="font-size: 10px; color: #888;">${marginHealth.toFixed(0)}% health</span>
-                                </td>
-                                <td class="${expiryClass}">
-                                    ${expiryIcon} ${turnsUntilExpiry} turn${turnsUntilExpiry > 1 ? 's' : ''}<br>
-                                    <span style="font-size: 10px; color: #888;">Turn ${pos.expiryTurn}</span>
-                                </td>
+                                <td class="${marginClass}">$${Math.round(pos.marginBalance).toLocaleString('en-US')}</td>
+                                <td class="${expiryClass}">${turnsUntilExpiry}T</td>
                                 <td>
-                                    <button class="trade-btn" onclick="FuturesWidget.closePosition(${pos.id})">CLOSE</button>
+                                    <button class="trade-btn" style="font-size: 11px; padding: 4px 8px;" onclick="FuturesWidget.showCloseInfo(${pos.id})">CLOSE</button>
                                 </td>
                             </tr>
                         `;
@@ -586,6 +571,115 @@ const FuturesWidget = {
         } else {
             alert(`❌ ${result.message}`);
         }
+    },
+
+    showCloseInfo(positionId) {
+        const position = GAME_STATE.futuresPositions.find(p => p.id === positionId);
+        if (!position) return;
+
+        const turnsToExpiry = position.expiryTurn - GAME_STATE.currentTurn;
+        const oppositeDirection = position.direction === 'LONG' ? 'SHORT' : 'LONG';
+
+        // Create popup overlay
+        const popup = document.createElement('div');
+        popup.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        `;
+
+        popup.innerHTML = `
+            <div style="
+                background: var(--bg-secondary);
+                border: 2px solid #3b82f6;
+                border-radius: 12px;
+                width: 500px;
+                max-width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            ">
+                <div style="
+                    background: rgba(59, 130, 246, 0.2);
+                    padding: 20px;
+                    border-bottom: 2px solid #3b82f6;
+                    border-radius: 10px 10px 0 0;
+                ">
+                    <div style="
+                        color: #3b82f6;
+                        font-size: 16px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    ">❓ How to Close This Position</div>
+                </div>
+
+                <div style="padding: 25px; color: var(--text-primary);">
+                    <p style="margin-bottom: 20px; color: #e0e0e0; font-size: 14px;">You have 2 options to close your <strong>${position.exchange} ${position.contract} ${position.direction}</strong> position:</p>
+
+                    <div style="
+                        background: rgba(251, 191, 36, 0.1);
+                        border-left: 4px solid #fbbf24;
+                        padding: 15px;
+                        margin-bottom: 20px;
+                        border-radius: 6px;
+                    ">
+                        <div style="font-size: 18px; margin-bottom: 10px;">1️⃣ <strong style="color: #fbbf24;">Wait for Expiry</strong></div>
+                        <div style="font-size: 13px; line-height: 1.6; color: #d0d0d0;">
+                            Contract expires in <span style="color: ${turnsToExpiry <= 1 ? '#ef4444' : '#fbbf24'}; font-weight: 700;">${turnsToExpiry} turn${turnsToExpiry > 1 ? 's' : ''}</span><br>
+                            Position will auto-close at expiry<br>
+                            Final P&L will be settled automatically
+                        </div>
+                    </div>
+
+                    <div style="
+                        background: rgba(59, 130, 246, 0.1);
+                        border-left: 4px solid #3b82f6;
+                        padding: 15px;
+                        margin-bottom: 20px;
+                        border-radius: 6px;
+                    ">
+                        <div style="font-size: 18px; margin-bottom: 10px;">2️⃣ <strong style="color: #3b82f6;">Offset Position Now</strong></div>
+                        <div style="font-size: 13px; line-height: 1.6; color: #d0d0d0;">
+                            Open opposite trade: <strong>${position.numContracts} ${oppositeDirection} ${position.exchange} ${position.contract}</strong><br>
+                            Position will close immediately via offset<br>
+                            Current P&L: <span style="color: ${position.unrealizedPL >= 0 ? '#10b981' : '#ef4444'}; font-weight: 700;">${position.unrealizedPL >= 0 ? '+' : ''}$${Math.round(position.unrealizedPL).toLocaleString('en-US')}</span>
+                        </div>
+                    </div>
+
+                    <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" style="
+                        width: 100%;
+                        background: linear-gradient(135deg, #3b82f6, #2563eb);
+                        border: none;
+                        color: white;
+                        padding: 12px;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                        letter-spacing: 0.5px;
+                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(popup);
+
+        // Close on background click
+        popup.addEventListener('click', (e) => {
+            if (e.target === popup) {
+                popup.remove();
+            }
+        });
     },
 
     toggleHelp() {

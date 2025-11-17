@@ -1,9 +1,10 @@
-/* ===== DRAGGABLE TRADE PANEL (500x500, NO OVERLAY) ===== */
+/* ===== DRAGGABLE TRADE PANEL (450px, COMPACT, NO OVERLAY) ===== */
 .trade-panel {
     display: none;
     position: fixed;
-    width: 500px;
-    height: 500px;
+    width: 450px;
+    max-height: 85vh;
+    overflow-y: auto;
     background: var(--bg-secondary);
     border: 2px solid var(--border-color);
     border-radius: 12px;
@@ -57,8 +58,9 @@
 }
 
 .trade-panel-body {
-    padding: 20px;
+    padding: 15px;
     flex: 1;
+    max-height: calc(85vh - 60px);
     overflow-y: auto;
 }
 
@@ -66,15 +68,15 @@
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 20px;
+    padding: 10px;
+    margin-bottom: 15px;
 }
 
 .info-row {
     display: flex;
     justify-content: space-between;
     padding: 6px 0;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .info-label {
@@ -88,7 +90,7 @@
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .form-label {
@@ -178,8 +180,8 @@
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 15px;
-    margin: 20px 0;
+    padding: 12px;
+    margin: 15px 0;
 }
 
 .calc-title {
@@ -194,7 +196,7 @@
 .calc-row {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0;
+    padding: 5px 0;
     font-size: 12px;
 }
 
