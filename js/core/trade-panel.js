@@ -69,7 +69,7 @@ const TradePanel = {
 
         document.getElementById('buySupplier').textContent = supplier;
         document.getElementById('buyPort').textContent = port;
-        document.getElementById('buyBasis').textContent = basis.replace('_', ' / ') + ' M+1';
+        document.getElementById('buyBasis').textContent = basis ? (basis.replace('_', ' / ') + ' M+1') : 'LME M+1';
         document.getElementById('buyPremium').textContent = premium > 0 ? `+$${premium}/MT` : '$0/MT';
         document.getElementById('buyRange').textContent = `Range: ${minMT} - ${maxMT} MT`;
         document.getElementById('buyTonnage').min = minMT;
