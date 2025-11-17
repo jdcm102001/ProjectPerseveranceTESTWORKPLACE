@@ -268,6 +268,15 @@ const GAME_STATE = {
         }
 
         document.getElementById('headerPL').textContent = `$${Math.round(this.totalPL).toLocaleString('en-US')}`;
+
+        // Calculate and display price exposure
+        const exposureData = this.calculatePriceExposure();
+        const exposureEl = document.getElementById('headerExposure');
+        if (exposureEl) {
+            const exposureText = `${exposureData.riskIcon} $${Math.round(exposureData.totalExposure).toLocaleString('en-US')} (${exposureData.exposurePercentage.toFixed(1)}%)`;
+            exposureEl.textContent = exposureText;
+            exposureEl.style.color = exposureData.riskColor;
+        }
     },
 
     // ==========================================
