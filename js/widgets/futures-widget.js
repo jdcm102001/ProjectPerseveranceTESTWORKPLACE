@@ -143,7 +143,7 @@ const FuturesWidget = {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                aspectRatio: 2.5,
+                aspectRatio: 3.5,
                 plugins: {
                     legend: {
                         display: this.currentView === 'BOTH',
@@ -214,6 +214,7 @@ const FuturesWidget = {
     render() {
         const availableContainer = document.getElementById('futuresAvailableTable');
         const positionsContainer = document.getElementById('futuresPositionsTable');
+        const marginContainer = document.getElementById('futuresMarginBreakdown');
 
         if (!availableContainer || !positionsContainer) {
             console.error('Futures widget containers not found');
@@ -222,6 +223,7 @@ const FuturesWidget = {
 
         this.renderAvailableContracts(availableContainer);
         this.renderOpenPositions(positionsContainer);
+        this.renderMarginBreakdown(marginContainer);
         this.updateSummary();
 
         // Refresh collapsibles for newly rendered content
@@ -382,6 +384,74 @@ const FuturesWidget = {
         if (marginEl) {
             marginEl.textContent = `$${Math.round(GAME_STATE.futuresMarginPosted).toLocaleString('en-US')} / $${Math.round(GAME_STATE.futuresMarginLimit).toLocaleString('en-US')}`;
         }
+    },
+
+    renderMarginBreakdown(container) {
+        if (!container) return;
+
+        if (GAME_STATE.futuresPositions.length === 0) {
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No open futures positions</div>';
+            return;
+        }
+
+        const marginCalc = GAME_STATE.calculateMarginWithNetting();
+
+        let html = `
+            <table class="positions-table" style="font-size: 12px;">
+                <thead>
+                    <tr>
+                        <th>CONTRACT</th>
+                        <th>LONG</th>
+                        <th>SHORT</th>
+                        <th>NET</th>
+                        <th>MARGIN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${marginCalc.breakdown.map(row => {
+                        let netDisplay = '';
+                        if (row.netDirection === 'FLAT') {
+                            netDisplay = '<span style="color: #888;">FLAT</span>';
+                        } else {
+                            netDisplay = `<span class="${row.netDirection === 'LONG' ? 'price-positive' : 'price-negative'}">${row.netContracts}${row.netDirection.charAt(0)}</span>`;
+                        }
+
+                        return `
+                            <tr>
+                                <td><strong>${row.contract}</strong></td>
+                                <td>${row.longContracts || '-'}</td>
+                                <td>${row.shortContracts || '-'}</td>
+                                <td>${netDisplay}</td>
+                                <td>$${Math.round(row.margin).toLocaleString('en-US')}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                    <tr style="border-top: 2px solid var(--border-color); font-weight: 700;">
+                        <td colspan="4" style="text-align: right; padding-top: 12px; color: #3b82f6;">TOTAL MARGIN POSTED:</td>
+                        <td style="padding-top: 12px; color: #3b82f6;">$${Math.round(marginCalc.totalMargin).toLocaleString('en-US')}</td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+
+        if (marginCalc.marginSaved > 0) {
+            html += `
+                <div style="
+                    margin-top: 15px;
+                    padding: 12px;
+                    background: rgba(16, 185, 129, 0.1);
+                    border-left: 4px solid #10b981;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    color: #10b981;
+                ">
+                    💰 <strong>Margin Saved:</strong> $${Math.round(marginCalc.marginSaved).toLocaleString('en-US')}
+                    (vs $${Math.round(marginCalc.marginWithoutNetting).toLocaleString('en-US')} without netting)
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
     },
 
     openPosition(exchange, contract, direction) {
@@ -644,11 +714,11 @@ const FuturesWidget = {
                         margin-bottom: 20px;
                         border-radius: 6px;
                     ">
-                        <div style="font-size: 18px; margin-bottom: 10px;">2️⃣ <strong style="color: #3b82f6;">Offset Position Now</strong></div>
+                        <div style="font-size: 18px; margin-bottom: 10px;">2️⃣ <strong style="color: #3b82f6;">Open Opposite Position</strong></div>
                         <div style="font-size: 13px; line-height: 1.6; color: #d0d0d0;">
                             Open opposite trade: <strong>${position.numContracts} ${oppositeDirection} ${position.exchange} ${position.contract}</strong><br>
-                            Position will close immediately via offset<br>
-                            Current P&L: <span style="color: ${position.unrealizedPL >= 0 ? '#10b981' : '#ef4444'}; font-weight: 700;">${position.unrealizedPL >= 0 ? '+' : ''}$${Math.round(position.unrealizedPL).toLocaleString('en-US')}</span>
+                            <strong style="color: #10b981;">Both positions remain open.</strong> Your opposite position will reduce net exposure and margin requirements via netting.<br>
+                            Margin benefit: Offset pairs only need $1,000 each (vs $9,000 unhedged)
                         </div>
                     </div>
 
@@ -717,11 +787,11 @@ const FuturesWidget = {
                         <li>Margin limit: $100,000 total</li>
                     </ul>
 
+                    <p><strong>💰 Margin Netting:</strong></p>
+                    <p>Opposite positions in the same contract offset each other, reducing margin. Each unhedged contract requires $9,000 margin. Offset pairs only need $1,000 each. Example: 3 LONG + 1 SHORT = 1 offset ($1K) + 2 net ($18K) = $19K total.</p>
+
                     <p><strong>Mark-to-Market (MTM):</strong></p>
                     <p>Each month, positions are revalued at current prices. If margin balance falls below initial margin, you'll receive a margin call requiring a top-up from Practice Funds or face force liquidation.</p>
-
-                    <p><strong>Offset Closing:</strong></p>
-                    <p>Opening an opposite position (e.g., SHORT when you have LONG) automatically closes your existing position(s) using FIFO (First In First Out), settling P&L immediately.</p>
 
                     <p><strong>Expiry:</strong></p>
                     <ul>
