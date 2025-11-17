@@ -1,6 +1,7 @@
 import { GAME_STATE } from './game-state.js';
 import { PositionsWidget } from '../widgets/positions-widget.js';
 import { MarketsWidget } from '../widgets/markets-widget.js';
+import { ExposureWarnings } from '../utils/exposure-warnings.js';
 
 const TradePanel = {
     currentTrade: {},
@@ -301,6 +302,10 @@ const TradePanel = {
         );
 
         GAME_STATE.updateHeader();
+
+        // Check for exposure warnings
+        const exposureData = GAME_STATE.calculatePriceExposure();
+        ExposureWarnings.checkAndShowWarning(exposureData, 'unhedgedPosition');
 
         const arrivalMonth = this.getMonthName(position.arrivalTurn);
         alert(`✅ Purchase Executed!\n\n${tonnage} MT from ${supplier}\nTotal Cost: $${Math.round(totalCost).toLocaleString('en-US')}\nPaid from Funds: $${Math.round(position.paidFromFunds).toLocaleString('en-US')}\nPaid from LOC: $${Math.round(position.paidFromLOC).toLocaleString('en-US')}\n\nTravel Time: ${position.travelTimeDays} days\nArrival: ${arrivalMonth}\n\nRemaining this month: ${purchaseCheck.remaining - tonnage}MT`);
