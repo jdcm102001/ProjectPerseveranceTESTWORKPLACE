@@ -318,6 +318,10 @@ async function createWidgetContent(widgetName, isActive) {
                 <!-- Open Positions -->
                 <div class="section-title" style="margin-top: 30px;">📈 Open Positions</div>
                 <div id="futuresPositionsTable"></div>
+
+                <!-- Margin Breakdown -->
+                <div class="section-title" style="margin-top: 30px;">💰 Margin Breakdown</div>
+                <div id="futuresMarginBreakdown"></div>
             </div>
         `;
 

@@ -291,23 +291,12 @@ const GAME_STATE = {
         }
 
         // Calculate requirements
-        const initialMarginRequired = spec.initialMargin * numContracts;
         const openingFees = spec.openFee * numContracts;
         const totalTonnage = spec.contractSize * numContracts;
 
-        // Check margin limit
-        if (this.futuresMarginPosted + initialMarginRequired > this.futuresMarginLimit) {
-            return {
-                success: false,
-                message: `Margin limit exceeded.\nMax: $${this.futuresMarginLimit.toLocaleString('en-US')}\nCurrently used: $${Math.round(this.futuresMarginPosted).toLocaleString('en-US')}`
-            };
-        }
-
-        // Check for offsetting position
-        const offsetResult = this.checkForOffset(exchange, contract, direction, numContracts);
-        if (offsetResult.isOffset) {
-            return this.executeOffset(offsetResult, futuresPrice, numContracts, spec);
-        }
+        // Calculate margin with netting BEFORE adding new position
+        const oldMarginCalc = this.calculateMarginWithNetting();
+        const oldMargin = oldMarginCalc.totalMargin;
 
         // Calculate expiry turn
         let expiryTurn = this.currentTurn;
@@ -315,7 +304,50 @@ const GAME_STATE = {
         else if (contract === 'M+3') expiryTurn += 3;
         else if (contract === 'M+12') expiryTurn += 12;
 
-        // Create position
+        // Create temporary position to test margin requirement
+        const tempPosition = {
+            id: Date.now(),
+            exchange: exchange,
+            contract: contract,
+            direction: direction,
+            numContracts: numContracts,
+            tonnage: totalTonnage,
+            contractSize: spec.contractSize,
+            entryPrice: futuresPrice,
+            currentPrice: futuresPrice,
+            unrealizedPL: 0,
+            openTurn: this.currentTurn,
+            openMonth: this.currentMonth,
+            expiryTurn: expiryTurn
+        };
+
+        // Add temporary position and calculate new margin
+        this.futuresPositions.push(tempPosition);
+        const newMarginCalc = this.calculateMarginWithNetting();
+        const newMargin = newMarginCalc.totalMargin;
+
+        // Check if new margin would exceed limit
+        if (newMargin > this.futuresMarginLimit) {
+            // Remove temp position
+            this.futuresPositions.pop();
+            return {
+                success: false,
+                message: `Margin limit exceeded.\nMax: $${this.futuresMarginLimit.toLocaleString('en-US')}\nWould need: $${Math.round(newMargin).toLocaleString('en-US')}\nCurrently used: $${Math.round(oldMargin).toLocaleString('en-US')}`
+            };
+        }
+
+        // Remove temp position (will add the real one below)
+        this.futuresPositions.pop();
+
+        // Check if there's an offset occurring
+        const oppositeDirection = direction === 'LONG' ? 'SHORT' : 'LONG';
+        const hasOpposite = this.futuresPositions.some(p =>
+            p.exchange === exchange &&
+            p.contract === contract &&
+            p.direction === oppositeDirection
+        );
+
+        // Create actual position
         const position = {
             id: Date.now(),
             exchange: exchange,
@@ -326,8 +358,6 @@ const GAME_STATE = {
             contractSize: spec.contractSize,
             entryPrice: futuresPrice,
             currentPrice: futuresPrice,
-            initialMargin: initialMarginRequired,
-            marginBalance: initialMarginRequired,
             unrealizedPL: 0,
             openTurn: this.currentTurn,
             openMonth: this.currentMonth,
@@ -337,110 +367,154 @@ const GAME_STATE = {
         // Deduct opening fees from practice funds
         this.practiceFunds -= openingFees;
 
-        // Add to margin posted
-        this.futuresMarginPosted += initialMarginRequired;
-
         // Add position
         this.futuresPositions.push(position);
 
+        // Update margin posted with netting
+        this.futuresMarginPosted = newMargin;
+
         this.updateHeader();
+
+        // Build message
+        const marginChange = newMargin - oldMargin;
+        const standardMargin = numContracts * 9000;
+
+        let message = `✅ Position Opened\n\n` +
+                     `${direction} ${numContracts} ${exchange} ${contract} contract(s)\n` +
+                     `Tonnage: ${totalTonnage.toFixed(2)} MT\n` +
+                     `Entry: $${Math.round(futuresPrice).toLocaleString('en-US')}/MT\n` +
+                     `Opening fees: $${openingFees.toLocaleString('en-US')}\n` +
+                     `Expires: Turn ${expiryTurn}\n\n`;
+
+        if (hasOpposite && marginChange < standardMargin) {
+            const saved = standardMargin - marginChange;
+            message += `💰 MARGIN NETTING BENEFIT\n` +
+                      `Margin added: $${Math.round(marginChange).toLocaleString('en-US')}\n` +
+                      `Saved: $${Math.round(saved).toLocaleString('en-US')} (offset occurred)\n` +
+                      `\nYour opposite ${oppositeDirection} position offsets this trade,\nreducing margin from $${standardMargin.toLocaleString('en-US')} to $${Math.round(marginChange).toLocaleString('en-US')}!`;
+        } else {
+            message += `Margin added: $${Math.round(marginChange).toLocaleString('en-US')}`;
+        }
 
         return {
             success: true,
             position: position,
-            message: `✅ Position Opened\n\n` +
-                     `${direction} ${numContracts} ${exchange} ${contract} contract(s)\n` +
-                     `Tonnage: ${totalTonnage.toFixed(2)} MT\n` +
-                     `Entry: $${Math.round(futuresPrice).toLocaleString('en-US')}/MT\n` +
-                     `Margin posted: $${initialMarginRequired.toLocaleString('en-US')}\n` +
-                     `Opening fees: $${openingFees.toLocaleString('en-US')}\n` +
-                     `Expires: Turn ${expiryTurn}`
+            message: message
         };
     },
 
-    checkForOffset(exchange, contract, direction, numContracts) {
-        const oppositeDirection = direction === 'LONG' ? 'SHORT' : 'LONG';
-        const matchingPositions = this.futuresPositions.filter(p =>
-            p.exchange === exchange &&
-            p.contract === contract &&
-            p.direction === oppositeDirection
-        );
+    /**
+     * Calculate total margin with netting logic
+     * Opposite positions in same contract reduce margin requirements
+     * Unhedged: $9,000 per contract | Offset pairs: $1,000 per contract
+     */
+    calculateMarginWithNetting(positions = this.futuresPositions) {
+        // Group positions by contract type (exchange + period)
+        const groups = {};
 
-        if (matchingPositions.length === 0) {
-            return { isOffset: false };
-        }
-
-        const totalOppositeContracts = matchingPositions.reduce((sum, p) => sum + p.numContracts, 0);
-
-        return {
-            isOffset: true,
-            matchingPositions: matchingPositions,
-            totalOppositeContracts: totalOppositeContracts,
-            numContracts: numContracts
-        };
-    },
-
-    executeOffset(offsetResult, closingPrice, numContracts, spec) {
-        let contractsToOffset = numContracts;
-        let totalPL = 0;
-        let totalMarginReturned = 0;
-        let totalClosingFees = 0;
-        let contractsClosed = 0;
-
-        // Close positions FIFO
-        for (let i = 0; i < offsetResult.matchingPositions.length && contractsToOffset > 0; i++) {
-            const position = offsetResult.matchingPositions[i];
-            const contractsClosing = Math.min(contractsToOffset, position.numContracts);
-
-            // Calculate P/L
-            const priceDiff = closingPrice - position.entryPrice;
-            const plMultiplier = position.direction === 'LONG' ? 1 : -1;
-            const positionPL = priceDiff * spec.priceMultiplier * contractsClosing * plMultiplier;
-
-            totalPL += positionPL;
-            contractsClosed += contractsClosing;
-
-            // Calculate margin to return (proportional)
-            const marginPerContract = position.initialMargin / position.numContracts;
-            const marginReturning = marginPerContract * contractsClosing;
-            totalMarginReturned += marginReturning;
-
-            // Calculate closing fees
-            const closingFees = spec.closeFee * contractsClosing;
-            totalClosingFees += closingFees;
-
-            // Update or remove position
-            if (contractsClosing === position.numContracts) {
-                const index = this.futuresPositions.indexOf(position);
-                this.futuresPositions.splice(index, 1);
-            } else {
-                position.numContracts -= contractsClosing;
-                position.tonnage = position.numContracts * position.contractSize;
-                position.initialMargin -= marginReturning;
-                position.marginBalance -= marginReturning;
+        positions.forEach(pos => {
+            const key = `${pos.exchange}_${pos.contract}`;
+            if (!groups[key]) {
+                groups[key] = {
+                    exchange: pos.exchange,
+                    contract: pos.contract,
+                    longContracts: 0,
+                    shortContracts: 0
+                };
             }
 
-            contractsToOffset -= contractsClosing;
+            if (pos.direction === 'LONG') {
+                groups[key].longContracts += pos.numContracts;
+            } else {
+                groups[key].shortContracts += pos.numContracts;
+            }
+        });
+
+        // Calculate margin for each group
+        let totalMargin = 0;
+        const breakdown = [];
+        const UNHEDGED_MARGIN = 9000;  // Per contract
+        const OFFSET_MARGIN = 1000;    // Per offset pair
+
+        Object.values(groups).forEach(group => {
+            // Calculate offset pairs and net exposure
+            const offsetPairs = Math.min(group.longContracts, group.shortContracts);
+            const netContracts = Math.abs(group.longContracts - group.shortContracts);
+            const netDirection = group.longContracts > group.shortContracts ? 'LONG' :
+                                 group.shortContracts > group.longContracts ? 'SHORT' : 'FLAT';
+
+            // Calculate margin: (offset × $1K) + (net × $9K)
+            const offsetMargin = offsetPairs * OFFSET_MARGIN;
+            const netMargin = netContracts * UNHEDGED_MARGIN;
+            const groupMargin = offsetMargin + netMargin;
+
+            totalMargin += groupMargin;
+
+            breakdown.push({
+                contract: `${group.exchange} ${group.contract}`,
+                longContracts: group.longContracts,
+                shortContracts: group.shortContracts,
+                offsetPairs: offsetPairs,
+                netContracts: netContracts,
+                netDirection: netDirection,
+                margin: groupMargin
+            });
+        });
+
+        // Calculate margin saved vs no netting
+        const totalContracts = positions.reduce((sum, p) => sum + p.numContracts, 0);
+        const marginWithoutNetting = totalContracts * UNHEDGED_MARGIN;
+        const marginSaved = marginWithoutNetting - totalMargin;
+
+        return {
+            totalMargin: totalMargin,
+            breakdown: breakdown,
+            marginSaved: marginSaved,
+            marginWithoutNetting: marginWithoutNetting
+        };
+    },
+
+    closeFuturesPosition(positionId) {
+        const position = this.futuresPositions.find(p => p.id === positionId);
+        if (!position) {
+            return { success: false, message: 'Position not found' };
         }
 
+        const spec = this.FUTURES_SPECS[position.exchange];
+
+        // Calculate closing fees
+        const closingFees = spec.closeFee * position.numContracts;
+
+        // Calculate final P&L
+        const finalPL = position.unrealizedPL;
+
+        // Remove position
+        const index = this.futuresPositions.indexOf(position);
+        this.futuresPositions.splice(index, 1);
+
+        // Recalculate margin with netting
+        const marginCalc = this.calculateMarginWithNetting();
+        const oldMargin = this.futuresMarginPosted;
+        this.futuresMarginPosted = marginCalc.totalMargin;
+        const marginReturned = oldMargin - this.futuresMarginPosted;
+
         // Settle finances
-        this.practiceFunds += totalPL;
-        this.practiceFunds -= totalClosingFees;
-        this.totalPL += totalPL;
-        this.totalFuturesPL += totalPL;
-        this.futuresMarginPosted -= totalMarginReturned;
+        this.practiceFunds += finalPL;  // Add/subtract P&L
+        this.practiceFunds -= closingFees;  // Deduct fees
+        this.practiceFunds += marginReturned;  // Return margin
+        this.totalPL += finalPL;
+        this.totalFuturesPL += finalPL;
 
         this.updateHeader();
 
         return {
             success: true,
-            isOffset: true,
-            message: `✅ Position Closed via Offset\n\n` +
-                     `Contracts closed: ${contractsClosed}\n` +
-                     `P&L: ${totalPL >= 0 ? '+' : ''}$${Math.round(totalPL).toLocaleString('en-US')}\n` +
-                     `Margin returned: $${Math.round(totalMarginReturned).toLocaleString('en-US')}\n` +
-                     `Closing fees: $${totalClosingFees.toLocaleString('en-US')}\n\n` +
-                     `Net change to Practice Funds: ${(totalPL - totalClosingFees) >= 0 ? '+' : ''}$${Math.round(totalPL - totalClosingFees).toLocaleString('en-US')}`
+            message: `✅ Position Closed\n\n` +
+                     `${position.direction} ${position.numContracts} ${position.exchange} ${position.contract}\n` +
+                     `P&L: ${finalPL >= 0 ? '+' : ''}$${Math.round(finalPL).toLocaleString('en-US')}\n` +
+                     `Margin returned: $${Math.round(marginReturned).toLocaleString('en-US')}\n` +
+                     `Closing fees: $${closingFees.toLocaleString('en-US')}\n\n` +
+                     `Net change: ${(finalPL - closingFees) >= 0 ? '+' : ''}$${Math.round(finalPL - closingFees).toLocaleString('en-US')}`
         };
     },
 
