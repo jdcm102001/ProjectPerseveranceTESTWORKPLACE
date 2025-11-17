@@ -8,13 +8,15 @@ window.JANUARY_DATA = {
         "MAX_OPTIONAL_SPOT_MT": 17,
         "TOTAL_MAX_AVAILABLE_MT": 22,
         "ORIGIN_PORT": "Callao",
-        "SUPPLIER_PREMIUM_USD": 15
+        "SUPPLIER_PREMIUM_USD": 15,
+        "IS_PRIMARY": true
       },
       "CHILEAN": {
         "MIN_AVAILABLE_MT": 20,
         "MAX_AVAILABLE_MT": 75,
         "ORIGIN_PORT": "Antofagasta",
-        "SUPPLIER_PREMIUM_USD": 0
+        "SUPPLIER_PREMIUM_USD": 0,
+        "IS_PRIMARY": false
       },
       "TOTAL_MARKET_DEPTH_MT": 92
     },
@@ -303,7 +305,8 @@ window.JANUARY_DATA = {
         "PORT_OF_DISCHARGE": "New Orleans, LA",
         "REFERENCE_EXCHANGE": "COMEX",
         "PORT_TYPE": "Hub",
-        "REGIONAL_PREMIUM_USD": 50
+        "REGIONAL_PREMIUM_USD": 50,
+        "IS_PRIMARY": true
       },
       {
         "REGION": "ASIA",
@@ -312,7 +315,8 @@ window.JANUARY_DATA = {
         "PORT_OF_DISCHARGE": "Shanghai",
         "REFERENCE_EXCHANGE": "LME",
         "PORT_TYPE": "Hub",
-        "REGIONAL_PREMIUM_USD": 120
+        "REGIONAL_PREMIUM_USD": 120,
+        "IS_PRIMARY": false
       },
       {
         "REGION": "EUROPE",
@@ -321,7 +325,8 @@ window.JANUARY_DATA = {
         "PORT_OF_DISCHARGE": "Rotterdam",
         "REFERENCE_EXCHANGE": "LME",
         "PORT_TYPE": "Hub",
-        "REGIONAL_PREMIUM_USD": 90
+        "REGIONAL_PREMIUM_USD": 90,
+        "IS_PRIMARY": false
       }
     ]
   }

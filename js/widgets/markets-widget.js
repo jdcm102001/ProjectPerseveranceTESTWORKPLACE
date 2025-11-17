@@ -26,29 +26,44 @@ const MarketsWidget = {
         const spotRemaining = peruvianData.MAX_OPTIONAL_SPOT_MT - GAME_STATE.monthlyPurchases.CALLAO_SPOT;
         const chileanRemaining = chileanData.MAX_AVAILABLE_MT - GAME_STATE.monthlyPurchases.ANTOFAGASTA_SPOT;
 
-        tbody.innerHTML = `
-            <tr>
-                <td><span class="port-name">CALLAO</span><span class="badge badge-lta">LTA</span></td>
-                <td>${ltaRemaining} MT REMAINING ${ltaRemaining === 0 ? '(SOLD OUT)' : ''}</td>
-                <td>LME M+1</td>
-                <td class="premium-positive">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</td>
-                <td><button class="trade-btn buy-btn" ${ltaRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="CALLAO" data-port="Callao, Peru" data-min="${peruvianData.LTA_FIXED_MT}" data-max="${peruvianData.LTA_FIXED_MT}" data-basis="LME" data-premium="${peruvianData.SUPPLIER_PREMIUM_USD}" data-islta="true">TRADE</button></td>
-            </tr>
-            <tr>
-                <td><span class="port-name">CALLAO</span><span class="badge badge-spot">SPOT</span></td>
-                <td>${peruvianData.LTA_FIXED_MT}–${spotRemaining} MT ${spotRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}</td>
-                <td>LME / COMEX M+1</td>
-                <td class="premium-positive">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</td>
-                <td><button class="trade-btn buy-btn" ${spotRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="CALLAO" data-port="Callao, Peru" data-min="${peruvianData.LTA_FIXED_MT}" data-max="${spotRemaining}" data-basis="LME_COMEX" data-premium="${peruvianData.SUPPLIER_PREMIUM_USD}" data-islta="false">TRADE</button></td>
-            </tr>
-            <tr>
-                <td><span class="port-name">ANTOFAGASTA</span><span class="badge badge-spot">SPOT</span></td>
-                <td>${chileanData.MIN_AVAILABLE_MT}–${chileanRemaining} MT ${chileanRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}</td>
-                <td>LME / COMEX M+1</td>
-                <td>$${chileanData.SUPPLIER_PREMIUM_USD}/MT</td>
-                <td><button class="trade-btn buy-btn" ${chileanRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="ANTOFAGASTA" data-port="Antofagasta, Chile" data-min="${chileanData.MIN_AVAILABLE_MT}" data-max="${chileanRemaining}" data-basis="LME_COMEX" data-premium="${chileanData.SUPPLIER_PREMIUM_USD}" data-islta="false">TRADE</button></td>
-            </tr>
-        `;
+        let rows = [];
+
+        // Show Callao LTA row only if Peruvian is primary
+        if (peruvianData.IS_PRIMARY) {
+            rows.push(`
+                <tr>
+                    <td><span class="port-name">CALLAO</span><span class="badge badge-lta">LTA</span></td>
+                    <td>${ltaRemaining} MT REMAINING ${ltaRemaining === 0 ? '(SOLD OUT)' : ''}</td>
+                    <td>LME M+1</td>
+                    <td class="premium-positive">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</td>
+                    <td><button class="trade-btn buy-btn" ${ltaRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="CALLAO" data-port="Callao, Peru" data-min="${peruvianData.LTA_FIXED_MT}" data-max="${peruvianData.LTA_FIXED_MT}" data-basis="LME" data-premium="${peruvianData.SUPPLIER_PREMIUM_USD}" data-islta="true">TRADE</button></td>
+                </tr>
+            `);
+            rows.push(`
+                <tr>
+                    <td><span class="port-name">CALLAO</span><span class="badge badge-spot">SPOT</span></td>
+                    <td>${peruvianData.LTA_FIXED_MT}–${spotRemaining} MT ${spotRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}</td>
+                    <td>LME / COMEX M+1</td>
+                    <td class="premium-positive">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</td>
+                    <td><button class="trade-btn buy-btn" ${spotRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="CALLAO" data-port="Callao, Peru" data-min="${peruvianData.LTA_FIXED_MT}" data-max="${spotRemaining}" data-basis="LME_COMEX" data-premium="${peruvianData.SUPPLIER_PREMIUM_USD}" data-islta="false">TRADE</button></td>
+                </tr>
+            `);
+        }
+
+        // Show Antofagasta row only if Chilean is primary
+        if (chileanData.IS_PRIMARY) {
+            rows.push(`
+                <tr>
+                    <td><span class="port-name">ANTOFAGASTA</span><span class="badge badge-spot">SPOT</span></td>
+                    <td>${chileanData.MIN_AVAILABLE_MT}–${chileanRemaining} MT ${chileanRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}</td>
+                    <td>LME / COMEX M+1</td>
+                    <td>$${chileanData.SUPPLIER_PREMIUM_USD}/MT</td>
+                    <td><button class="trade-btn buy-btn" ${chileanRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="ANTOFAGASTA" data-port="Antofagasta, Chile" data-min="${chileanData.MIN_AVAILABLE_MT}" data-max="${chileanRemaining}" data-basis="LME_COMEX" data-premium="${chileanData.SUPPLIER_PREMIUM_USD}" data-islta="false">TRADE</button></td>
+                </tr>
+            `);
+        }
+
+        tbody.innerHTML = rows.join('');
     },
 
     populateBuyersTable() {
@@ -56,7 +71,10 @@ const MarketsWidget = {
         const tbody = document.getElementById('buyersTableBody');
         if (!tbody) return;
 
-        tbody.innerHTML = monthData.CLIENTS.OPPORTUNITIES.map(buyer => {
+        // Filter to show only primary buyers
+        const primaryBuyers = monthData.CLIENTS.OPPORTUNITIES.filter(buyer => buyer.IS_PRIMARY === true);
+
+        tbody.innerHTML = primaryBuyers.map(buyer => {
             const remaining = buyer.MAX_QUANTITY_MT - (GAME_STATE.monthlySales[buyer.REGION] || 0);
             const soldOut = remaining === 0;
 

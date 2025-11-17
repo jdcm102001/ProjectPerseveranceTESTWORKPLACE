@@ -203,7 +203,7 @@ async function createWidgetContent(widgetName, isActive) {
     if (widgetName === 'Markets') {
         content.innerHTML = `
             <div class="markets-widget-content">
-                <div class="section-title">🔵 Suppliers - Buy Copper</div>
+                <div class="section-title">🔵 This Month's Supplier</div>
                 <table class="markets-table" id="suppliersTable">
                     <thead>
                         <tr>
@@ -217,7 +217,7 @@ async function createWidgetContent(widgetName, isActive) {
                     <tbody id="suppliersTableBody"></tbody>
                 </table>
 
-                <div class="section-title">🟢 Buyers - Sell Copper</div>
+                <div class="section-title">🟢 This Month's Buyer</div>
                 <table class="markets-table" id="buyersTable">
                     <thead>
                         <tr>
