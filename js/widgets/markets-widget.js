@@ -30,14 +30,14 @@ const MarketsWidget = {
 
         // Show Callao LTA row only if Peruvian is primary
         if (peruvianData.IS_PRIMARY) {
-            // LTA Row - Combine seller name + contract type + availability
+            // LTA Row - Seller name + contract type badge only
             const ltaSellerInfo = `
                 <span class="port-name">CALLAO</span>
                 <span class="badge badge-lta" style="margin-left: 4px;">LTA</span>
-                <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                    ${ltaRemaining} MT ${ltaRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}
-                </div>
             `;
+
+            // LTA Available - Tonnage info
+            const ltaAvailable = `${ltaRemaining} MT ${ltaRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}`;
 
             // LTA Pricing - Combine exchange + QP + premium
             const ltaPricingInfo = `
@@ -49,20 +49,20 @@ const MarketsWidget = {
             rows.push(`
                 <tr>
                     <td>${ltaSellerInfo}</td>
-                    <td>Callao, Peru</td>
+                    <td>${ltaAvailable}</td>
                     <td>${ltaPricingInfo}</td>
                     <td><button class="trade-btn buy-btn" ${ltaRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="CALLAO" data-port="Callao, Peru" data-min="${peruvianData.LTA_FIXED_MT}" data-max="${peruvianData.LTA_FIXED_MT}" data-basis="LME" data-premium="${peruvianData.SUPPLIER_PREMIUM_USD}" data-islta="true">TRADE</button></td>
                 </tr>
             `);
 
-            // SPOT Row - Combine seller name + contract type + availability
+            // SPOT Row - Seller name + contract type badge only
             const spotSellerInfo = `
                 <span class="port-name">CALLAO</span>
                 <span class="badge badge-spot" style="margin-left: 4px;">SPOT</span>
-                <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                    ${peruvianData.LTA_FIXED_MT}–${spotRemaining} MT ${spotRemaining === 0 ? '(SOLD OUT)' : ''}
-                </div>
             `;
+
+            // SPOT Available - Tonnage range
+            const spotAvailable = `${peruvianData.LTA_FIXED_MT}–${spotRemaining} MT ${spotRemaining === 0 ? '(SOLD OUT)' : ''}`;
 
             // SPOT Pricing - Combine exchange options + QP + premium
             const spotPricingInfo = `
@@ -76,7 +76,7 @@ const MarketsWidget = {
             rows.push(`
                 <tr>
                     <td>${spotSellerInfo}</td>
-                    <td>Callao, Peru</td>
+                    <td>${spotAvailable}</td>
                     <td>${spotPricingInfo}</td>
                     <td><button class="trade-btn buy-btn" ${spotRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="CALLAO" data-port="Callao, Peru" data-min="${peruvianData.LTA_FIXED_MT}" data-max="${spotRemaining}" data-basis="LME_COMEX" data-premium="${peruvianData.SUPPLIER_PREMIUM_USD}" data-islta="false">TRADE</button></td>
                 </tr>
@@ -85,14 +85,14 @@ const MarketsWidget = {
 
         // Show Antofagasta row only if Chilean is primary
         if (chileanData.IS_PRIMARY) {
-            // Chilean SPOT Row - Combine seller name + contract type + availability
+            // Chilean SPOT Row - Seller name + contract type badge only
             const chileanSellerInfo = `
                 <span class="port-name">ANTOFAGASTA</span>
                 <span class="badge badge-spot" style="margin-left: 4px;">SPOT</span>
-                <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                    ${chileanData.MIN_AVAILABLE_MT}–${chileanRemaining} MT ${chileanRemaining === 0 ? '(SOLD OUT)' : ''}
-                </div>
             `;
+
+            // Chilean Available - Tonnage range
+            const chileanAvailable = `${chileanData.MIN_AVAILABLE_MT}–${chileanRemaining} MT ${chileanRemaining === 0 ? '(SOLD OUT)' : ''}`;
 
             // Chilean Pricing - Combine exchange options + QP + premium
             const chileanPricingInfo = `
@@ -106,7 +106,7 @@ const MarketsWidget = {
             rows.push(`
                 <tr>
                     <td>${chileanSellerInfo}</td>
-                    <td>Antofagasta, Chile</td>
+                    <td>${chileanAvailable}</td>
                     <td>${chileanPricingInfo}</td>
                     <td><button class="trade-btn buy-btn" ${chileanRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="ANTOFAGASTA" data-port="Antofagasta, Chile" data-min="${chileanData.MIN_AVAILABLE_MT}" data-max="${chileanRemaining}" data-basis="LME_COMEX" data-premium="${chileanData.SUPPLIER_PREMIUM_USD}" data-islta="false">TRADE</button></td>
                 </tr>
@@ -128,13 +128,16 @@ const MarketsWidget = {
             const remaining = buyer.MAX_QUANTITY_MT - (GAME_STATE.monthlySales[buyer.REGION] || 0);
             const soldOut = remaining === 0;
 
-            // Combine buyer name + demand into single cell
+            // Buyer name + port in small text below
             const buyerInfo = `
                 <span class="port-name">${buyer.REGION}</span>
                 <div style="font-size: 11px; color: #888; margin-top: 4px;">
-                    ${buyer.MIN_QUANTITY_MT}–${remaining} MT ${soldOut ? '(SOLD OUT)' : ''}
+                    ${buyer.PORT_OF_DISCHARGE}
                 </div>
             `;
+
+            // Demand - Tonnage range
+            const demandInfo = `${buyer.MIN_QUANTITY_MT}–${remaining} MT ${soldOut ? '(SOLD OUT)' : ''}`;
 
             // Combine exchange + QP + premium into single cell
             const pricingInfo = `
@@ -146,7 +149,7 @@ const MarketsWidget = {
             return `
                 <tr>
                     <td>${buyerInfo}</td>
-                    <td>${buyer.PORT_OF_DISCHARGE}</td>
+                    <td>${demandInfo}</td>
                     <td>${pricingInfo}</td>
                     <td><button class="trade-btn sell-btn" ${soldOut ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="sell" data-buyer="${buyer.REGION}" data-dest="${buyer.PORT_OF_DISCHARGE}" data-min="${buyer.MIN_QUANTITY_MT}" data-max="${remaining}" data-exchange="${buyer.REFERENCE_EXCHANGE}" data-premium="${buyer.REGIONAL_PREMIUM_USD}">TRADE</button></td>
                 </tr>
