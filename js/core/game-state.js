@@ -277,6 +277,16 @@ const GAME_STATE = {
             exposureEl.textContent = exposureText;
             exposureEl.style.color = exposureData.riskColor;
         }
+
+        // Update widget elevation based on current state
+        if (typeof window.updateWidgetElevation === 'function') {
+            window.updateWidgetElevation();
+        }
+
+        // Check and show workflow hints
+        if (typeof window.WorkflowHints !== 'undefined') {
+            window.WorkflowHints.checkAndShowHints();
+        }
     },
 
     // ==========================================

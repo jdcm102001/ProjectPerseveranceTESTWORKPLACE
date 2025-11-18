@@ -13,6 +13,9 @@ import { MarketsWidget } from './widgets/markets-widget.js';
 import { FuturesWidget } from './widgets/futures-widget.js';
 import { PositionsWidget } from './widgets/positions-widget.js';
 
+// Import utility modules
+import { WorkflowHints } from './utils/workflow-hints.js';
+
 // Import drag & drop modules
 import {
     handleWidgetDragStart,
@@ -20,7 +23,8 @@ import {
     handlePanelDragOver,
     handlePanelDragLeave,
     handlePanelDrop,
-    createWidgetContent
+    createWidgetContent,
+    updateWidgetElevation
 } from './drag-drop/widget-drag.js';
 
 import {
@@ -50,6 +54,7 @@ window.toggleTheme = toggleTheme;
 window.showSaleDetails = showSaleDetails;
 window.closeSaleDetails = closeSaleDetails;
 window.closeWidget = closeWidget;
+window.updateWidgetElevation = updateWidgetElevation;
 
 /* ==========================================
    INITIALIZATION
@@ -109,6 +114,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize collapsible sections after widgets load
     setTimeout(() => {
         initCollapsibles();
+        updateWidgetElevation(); // Update elevation based on initial game state
+        WorkflowHints.checkAndShowHints(); // Show workflow hints if applicable
     }, 500);
 
     // Attach event listeners for UI controls
@@ -116,6 +123,35 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
     document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
     document.getElementById('closeSaleDetailsBtn')?.addEventListener('click', closeSaleDetails);
+
+    // Market data toggle functionality
+    document.getElementById('marketDataToggle')?.addEventListener('click', function() {
+        const expanded = document.getElementById('marketDataExpanded');
+        const button = this;
+
+        if (expanded.style.display === 'none' || expanded.style.display === '') {
+            expanded.style.display = 'flex';
+            button.textContent = '📊 Market Data ▲';
+            button.classList.add('expanded');
+            sessionStorage.setItem('marketDataExpanded', 'true');
+        } else {
+            expanded.style.display = 'none';
+            button.textContent = '📊 Market Data ▼';
+            button.classList.remove('expanded');
+            sessionStorage.setItem('marketDataExpanded', 'false');
+        }
+    });
+
+    // Restore market data expanded state on load
+    if (sessionStorage.getItem('marketDataExpanded') === 'true') {
+        const expanded = document.getElementById('marketDataExpanded');
+        const button = document.getElementById('marketDataToggle');
+        if (expanded && button) {
+            expanded.style.display = 'flex';
+            button.textContent = '📊 Market Data ▲';
+            button.classList.add('expanded');
+        }
+    }
 
     // Attach event listeners for close buttons (using event delegation)
     document.addEventListener('click', (e) => {

@@ -78,14 +78,26 @@ const MarketsWidget = {
             const remaining = buyer.MAX_QUANTITY_MT - (GAME_STATE.monthlySales[buyer.REGION] || 0);
             const soldOut = remaining === 0;
 
+            // Combine buyer name + demand into single cell
+            const buyerInfo = `
+                <span class="port-name">${buyer.REGION}</span>
+                <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                    ${buyer.MIN_QUANTITY_MT}–${remaining} MT ${soldOut ? '(SOLD OUT)' : ''}
+                </div>
+            `;
+
+            // Combine exchange + QP + premium into single cell
+            const pricingInfo = `
+                <span class="exchange-badge">${buyer.REFERENCE_EXCHANGE}</span>
+                <span class="exchange-badge" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: #fbbf24; margin-left: 4px;">M+1</span>
+                <div class="premium-positive" style="margin-top: 4px;">+$${buyer.REGIONAL_PREMIUM_USD}/MT</div>
+            `;
+
             return `
                 <tr>
-                    <td><span class="port-name">${buyer.REGION}</span></td>
-                    <td>${buyer.MIN_QUANTITY_MT}–${remaining} MT ${soldOut ? '(SOLD OUT)' : 'REMAINING'}</td>
+                    <td>${buyerInfo}</td>
                     <td>${buyer.PORT_OF_DISCHARGE}</td>
-                    <td><span class="exchange-badge">${buyer.REFERENCE_EXCHANGE}</span></td>
-                    <td><span class="exchange-badge" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: #fbbf24;">M+1</span></td>
-                    <td class="premium-positive">+$${buyer.REGIONAL_PREMIUM_USD}/MT</td>
+                    <td>${pricingInfo}</td>
                     <td><button class="trade-btn sell-btn" ${soldOut ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="sell" data-buyer="${buyer.REGION}" data-dest="${buyer.PORT_OF_DISCHARGE}" data-min="${buyer.MIN_QUANTITY_MT}" data-max="${remaining}" data-exchange="${buyer.REFERENCE_EXCHANGE}" data-premium="${buyer.REGIONAL_PREMIUM_USD}">TRADE</button></td>
                 </tr>
             `;

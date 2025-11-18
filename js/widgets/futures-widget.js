@@ -82,6 +82,147 @@ const FuturesWidget = {
         return { labels, lmeData, comexData };
     },
 
+    /**
+     * Analyzes term structure and returns market insights
+     */
+    analyzeMarketStructure() {
+        const { lmeData, comexData } = this.getTermStructureData();
+
+        // Determine which data to analyze based on current view
+        let data = lmeData;
+        let exchange = 'LME';
+
+        if (this.currentView === 'COMEX') {
+            data = comexData;
+            exchange = 'COMEX';
+        } else if (this.currentView === 'BOTH') {
+            // For BOTH view, analyze whichever has stronger signal
+            const lmeSlope = lmeData[3] - lmeData[0];
+            const comexSlope = comexData[3] - comexData[0];
+            if (Math.abs(comexSlope) > Math.abs(lmeSlope)) {
+                data = comexData;
+                exchange = 'COMEX';
+            }
+        }
+
+        const spot = data[0];
+        const m1 = data[1];
+        const m3 = data[2];
+        const m12 = data[3];
+
+        // Calculate slopes
+        const shortTermSlope = m1 - spot;
+        const mediumTermSlope = m3 - m1;
+        const longTermSlope = m12 - m3;
+        const overallSlope = m12 - spot;
+
+        // Determine market structure
+        let structure, icon, color, explanation, strategy;
+
+        if (overallSlope > 50) {
+            // Strong Contango
+            structure = 'STRONG CONTANGO';
+            icon = '⬆️⬆️';
+            color = '#10b981'; // Green
+            explanation = `Futures prices are significantly higher than spot ($${Math.round(overallSlope)}/MT premium). Market expects prices to rise.`;
+            strategy = '💡 STRATEGY: Consider LONG futures to profit from expected price increases, or delay physical purchases to buy at lower current prices.';
+        } else if (overallSlope > 10 && overallSlope <= 50) {
+            // Mild Contango
+            structure = 'MILD CONTANGO';
+            icon = '⬆️';
+            color = '#3b82f6'; // Blue
+            explanation = `Futures prices are slightly higher than spot ($${Math.round(overallSlope)}/MT premium). Normal carrying cost structure.`;
+            strategy = '💡 STRATEGY: Good time for physical trading with SHORT futures hedge. Contango covers storage costs.';
+        } else if (overallSlope >= -10 && overallSlope <= 10) {
+            // Flat
+            structure = 'FLAT CURVE';
+            icon = '➡️';
+            color = '#fbbf24'; // Yellow
+            explanation = `Spot and futures prices are nearly equal. Market is balanced with no strong directional bias.`;
+            strategy = '💡 STRATEGY: Focus on physical trading spreads. Futures hedging optional unless you have large exposure.';
+        } else if (overallSlope >= -50 && overallSlope < -10) {
+            // Mild Backwardation
+            structure = 'MILD BACKWARDATION';
+            icon = '⬇️';
+            color = '#f59e0b'; // Orange
+            explanation = `Spot prices are higher than futures ($${Math.abs(Math.round(overallSlope))}/MT premium). Supply is slightly tight.`;
+            strategy = '💡 STRATEGY: Consider SHORT futures to lock in selling prices. Good time to sell physical positions quickly.';
+        } else {
+            // Strong Backwardation
+            structure = 'STRONG BACKWARDATION';
+            icon = '⬇️⬇️';
+            color = '#ef4444'; // Red
+            explanation = `Spot prices are significantly higher than futures ($${Math.abs(Math.round(overallSlope))}/MT premium). Supply shortage!`;
+            strategy = '💡 STRATEGY: URGENT - SHORT futures to protect physical positions. Sell physical inventory ASAP to capture premium.';
+        }
+
+        return {
+            structure,
+            icon,
+            color,
+            explanation,
+            strategy,
+            exchange,
+            slope: overallSlope
+        };
+    },
+
+    /**
+     * Renders smart annotation below the graph
+     */
+    renderGraphAnnotation() {
+        const annotation = this.analyzeMarketStructure();
+
+        // Find or create annotation container
+        let annotationEl = document.getElementById('futuresGraphAnnotation');
+        if (!annotationEl) {
+            const graphContainer = document.querySelector('.futures-graph-container');
+            if (!graphContainer) return;
+
+            annotationEl = document.createElement('div');
+            annotationEl.id = 'futuresGraphAnnotation';
+            graphContainer.appendChild(annotationEl);
+        }
+
+        annotationEl.innerHTML = `
+            <div style="
+                margin-top: 15px;
+                padding: 15px;
+                background: rgba(30, 30, 30, 0.8);
+                border-left: 4px solid ${annotation.color};
+                border-radius: 6px;
+            ">
+                <div style="
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: ${annotation.color};
+                    margin-bottom: 8px;
+                ">
+                    ${annotation.icon} ${annotation.structure} (${annotation.exchange})
+                </div>
+                <div style="
+                    font-size: 13px;
+                    line-height: 1.5;
+                    color: var(--text-secondary);
+                    margin-bottom: 10px;
+                ">
+                    ${annotation.explanation}
+                </div>
+                <div style="
+                    font-size: 13px;
+                    line-height: 1.5;
+                    color: var(--text-primary);
+                    font-weight: 600;
+                    padding: 10px;
+                    background: rgba(59, 130, 246, 0.1);
+                    border-radius: 4px;
+                ">
+                    ${annotation.strategy}
+                </div>
+            </div>
+        `;
+    },
+
     renderGraph() {
         const canvas = document.getElementById('futuresChart');
         if (!canvas) {
@@ -209,6 +350,9 @@ const FuturesWidget = {
                 }
             }
         });
+
+        // Render smart annotation after graph is created
+        this.renderGraphAnnotation();
     },
 
     render() {
