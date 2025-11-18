@@ -271,14 +271,18 @@ async function createWidgetContent(widgetName, isActive) {
                         </div>
                     </div>
                     <div class="maritime-map-legend">
-                        <div class="maritime-map-legend-title">Legend</div>
+                        <div class="maritime-map-legend-title">Port Types</div>
                         <div class="maritime-map-legend-item">
-                            <div class="maritime-map-legend-icon">🚢</div>
-                            <div class="maritime-map-legend-label">Active Shipment</div>
+                            <div class="port-marker-circle" style="background: #00FF88; box-shadow: 0 0 8px #00FF88;"></div>
+                            <div class="maritime-map-legend-label">Hub Ports</div>
                         </div>
                         <div class="maritime-map-legend-item">
-                            <div class="maritime-map-legend-line"></div>
-                            <div class="maritime-map-legend-label">Route Path</div>
+                            <div class="port-marker-circle" style="background: #F59E0B;"></div>
+                            <div class="maritime-map-legend-label">Parity Ports</div>
+                        </div>
+                        <div class="maritime-map-legend-item">
+                            <div class="port-marker-triangle" style="border-bottom-color: #EF4444;"></div>
+                            <div class="maritime-map-legend-label">Seller Ports</div>
                         </div>
                     </div>
                     <div class="maritime-map-empty">
