@@ -1,7 +1,7 @@
 // Mapbox Manager Module
 // Handles map initialization, ship animations, and route visualization
 
-import { MAPBOX_CONFIG, ANIMATION_CONFIG, getPortLocation } from './maritime-config.js';
+import { MAPBOX_CONFIG, ANIMATION_CONFIG, getPortLocation, PORT_LOCATIONS } from './maritime-config.js';
 import maritimeRoutes from './maritime-routes.js';
 
 /**
@@ -15,6 +15,7 @@ class MapboxManager {
         this.activeShipments = new Map(); // positionId -> animation state
         this.animationFrameId = null;
         this.shipIconLoaded = false;
+        this.portMarkers = new Map(); // portId -> marker instance
     }
 
     /**
@@ -47,6 +48,7 @@ class MapboxManager {
                     console.log('[Mapbox Manager] Map loaded successfully');
                     this.isInitialized = true;
                     this.loadShipIcon().then(() => {
+                        this.addPortMarkers();
                         resolve(this.map);
                     });
                 });
@@ -102,6 +104,54 @@ class MapboxManager {
                 resolve();
             });
         });
+    }
+
+    /**
+     * Add port markers to the map
+     * Uses DOM markers for all ports to ensure consistent visibility at all zoom levels
+     */
+    addPortMarkers() {
+        // Hub ports - major distribution centers
+        const hubPorts = ['shanghai', 'neworleans', 'rotterdam'];
+        // Seller ports - origin/supplier ports
+        const sellerPorts = ['antofagasta', 'callao'];
+        // All other ports are parity ports
+
+        Object.entries(PORT_LOCATIONS).forEach(([portId, portData]) => {
+            // Create marker element
+            const el = document.createElement('div');
+            el.className = 'port-marker';
+
+            // Apply category-specific styling
+            // IMPORTANT: Both hub and parity ports use the same DOM marker approach
+            // This ensures they have identical visibility behavior at all zoom levels
+            if (hubPorts.includes(portId)) {
+                el.classList.add('port-hub'); // Orange circle - Hub
+            } else if (sellerPorts.includes(portId)) {
+                el.classList.add('port-seller'); // Yellow triangle - Seller
+            } else {
+                el.classList.add('port-parity'); // Green circle - Parity
+            }
+
+            // Create and add marker to map
+            const marker = new mapboxgl.Marker(el)
+                .setLngLat(portData.coordinates)
+                .setPopup(
+                    new mapboxgl.Popup({ offset: 25 })
+                        .setHTML(`
+                            <strong>${portData.displayName}</strong><br>
+                            <span style="font-size: 11px; color: #94a3b8;">
+                                ${portData.country} • ${portData.category}
+                            </span>
+                        `)
+                )
+                .addTo(this.map);
+
+            // Store marker reference
+            this.portMarkers.set(portId, marker);
+        });
+
+        console.log('[Mapbox Manager] Added', this.portMarkers.size, 'port markers to map');
     }
 
     /**
@@ -439,6 +489,12 @@ class MapboxManager {
             this.removeShipmentLayers(state);
         });
         this.activeShipments.clear();
+
+        // Remove all port markers
+        this.portMarkers.forEach((marker) => {
+            marker.remove();
+        });
+        this.portMarkers.clear();
 
         // Remove map
         if (this.map) {

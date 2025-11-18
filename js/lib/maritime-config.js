@@ -156,7 +156,7 @@ export const PORT_LOCATIONS = {
         coordinates: [-90.0715, 29.9511],
         country: 'USA',
         displayName: 'New Orleans',
-        category: 'PARITY'
+        category: 'HUB'
     },
     houston: {
         coordinates: [-95.3698, 29.7604],
