@@ -12,6 +12,7 @@ import { initCollapsibles, refreshCollapsibles } from './core/collapsible.js';
 import { MarketsWidget } from './widgets/markets-widget.js';
 import { FuturesWidget } from './widgets/futures-widget.js';
 import { PositionsWidget } from './widgets/positions-widget.js';
+import { MaritimeMapWidget } from './widgets/maritime-map-widget.js';
 
 // Import utility modules
 import { WorkflowHints } from './utils/workflow-hints.js';

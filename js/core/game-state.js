@@ -119,6 +119,11 @@ const GAME_STATE = {
         this.physicalPositions.push(position);
         this.recordPurchase(supplier, tonnage, isLTA);
 
+        // Dispatch event for maritime map widget
+        window.dispatchEvent(new CustomEvent('position-created', {
+            detail: { position }
+        }));
+
         return position;
     },
 
@@ -136,6 +141,11 @@ const GAME_STATE = {
                 settlementTurn: position.purchaseTurn + 2 // Settles 2 turns after purchase
             };
             position.status = 'SOLD_PENDING_SETTLEMENT';
+
+            // Dispatch event for position status change
+            window.dispatchEvent(new CustomEvent('position-status-changed', {
+                detail: { position, oldStatus: 'IN_TRANSIT', newStatus: 'SOLD_PENDING_SETTLEMENT' }
+            }));
         }
 
         this.recordSale(region, tonnage);
@@ -209,6 +219,11 @@ const GAME_STATE = {
         this.physicalPositions.forEach(pos => {
             if (pos.status === 'IN_TRANSIT' && turn >= pos.arrivalTurn) {
                 pos.status = 'ARRIVED';
+
+                // Dispatch event for position status change
+                window.dispatchEvent(new CustomEvent('position-status-changed', {
+                    detail: { position: pos, oldStatus: 'IN_TRANSIT', newStatus: 'ARRIVED' }
+                }));
             }
         });
     },
@@ -258,6 +273,12 @@ const GAME_STATE = {
         document.getElementById('headerLME3M').textContent = `$${data.PRICING.LME.FUTURES_3M.toLocaleString('en-US')}`;
         document.getElementById('headerCOMEXSpot').textContent = `$${data.PRICING.COMEX.SPOT_AVG.toLocaleString('en-US')}`;
         document.getElementById('headerCOMEX3M').textContent = `$${data.PRICING.COMEX.FUTURES_3M.toLocaleString('en-US')}`;
+
+        // Update SOFR and Cost of Carry
+        const sofrPercent = data.FIXED_RULES.COST_OF_CARRY.SOFR_1M_PERCENT;
+        const monthlyRate = data.FIXED_RULES.COST_OF_CARRY.MONTHLY_RATE;
+        document.getElementById('headerSOFR').textContent = `${sofrPercent.toFixed(2)}%`;
+        document.getElementById('headerCostOfCarry').textContent = `${(monthlyRate * 100).toFixed(2)}%/mo`;
 
         const totalPhysicalMT = this.physicalPositions.reduce((sum, pos) => sum + pos.tonnage, 0);
         document.getElementById('headerPhysicalMT').textContent = totalPhysicalMT.toFixed(1);

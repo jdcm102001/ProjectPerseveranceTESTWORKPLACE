@@ -251,6 +251,47 @@ async function createWidgetContent(widgetName, isActive) {
     if (widgetName === 'Positions') {
         content.innerHTML = `
             <div class="positions-widget-content" style="padding: 15px;">
+                <!-- Maritime Map Section -->
+                <div class="maritime-map-container">
+                    <div id="maritimeMap"></div>
+                    <div class="maritime-map-loading">
+                        <div class="maritime-map-loading-icon">🚢</div>
+                        <div class="maritime-map-loading-text">Loading maritime map...</div>
+                    </div>
+                    <div class="maritime-map-error hidden">
+                        <div class="maritime-map-error-icon">⚠️</div>
+                        <div class="maritime-map-error-title">Map Error</div>
+                        <div class="maritime-map-error-message">Failed to load maritime map</div>
+                    </div>
+                    <div class="maritime-map-header">
+                        <div class="maritime-map-header-icon">🚢</div>
+                        <div class="maritime-map-header-text">
+                            <div class="maritime-map-header-title">Active Shipments</div>
+                            <div class="maritime-map-header-value" id="activeShipmentsCount">0</div>
+                        </div>
+                    </div>
+                    <div class="maritime-map-legend">
+                        <div class="maritime-map-legend-title">Port Types</div>
+                        <div class="maritime-map-legend-item">
+                            <div class="port-marker-circle" style="background: #00FF88; box-shadow: 0 0 8px #00FF88;"></div>
+                            <div class="maritime-map-legend-label">Hub Ports</div>
+                        </div>
+                        <div class="maritime-map-legend-item">
+                            <div class="port-marker-circle" style="background: #F59E0B;"></div>
+                            <div class="maritime-map-legend-label">Parity Ports</div>
+                        </div>
+                        <div class="maritime-map-legend-item">
+                            <div class="port-marker-triangle" style="border-bottom-color: #EF4444;"></div>
+                            <div class="maritime-map-legend-label">Seller Ports</div>
+                        </div>
+                    </div>
+                    <div class="maritime-map-empty">
+                        <div class="maritime-map-empty-icon">🌊</div>
+                        <div class="maritime-map-empty-text">No active shipments</div>
+                    </div>
+                </div>
+
+                <!-- Physical Positions Table -->
                 <div class="section-title">📦 Physical Positions</div>
                 <div id="positionsContainer"></div>
             </div>
