@@ -304,12 +304,28 @@ class MapboxManager {
                 source: 'hub-ports',
                 layout: {
                     'icon-image': 'hub-marker',
-                    'icon-size': 1,
+                    'icon-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 0.4,   // At zoom 1 (very zoomed out), icons are 0.4x
+                        4, 0.8,   // At zoom 4, icons are 0.8x
+                        8, 1.2,   // At zoom 8, icons are 1.2x
+                        12, 1.6   // At zoom 12 (zoomed in), icons are 1.6x
+                    ],
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true,
                     'text-field': ['get', 'name'],
                     'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                    'text-size': 11,
+                    'text-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 8,     // At zoom 1, text size is 8
+                        4, 10,    // At zoom 4, text size is 10
+                        8, 11,    // At zoom 8, text size is 11
+                        12, 13    // At zoom 12, text size is 13
+                    ],
                     'text-offset': [0, 1.5],
                     'text-anchor': 'top'
                 },
@@ -326,12 +342,28 @@ class MapboxManager {
                 source: 'parity-ports',
                 layout: {
                     'icon-image': 'parity-marker',
-                    'icon-size': 1,
+                    'icon-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 0.4,
+                        4, 0.8,
+                        8, 1.2,
+                        12, 1.6
+                    ],
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true,
                     'text-field': ['get', 'name'],
                     'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                    'text-size': 11,
+                    'text-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 8,
+                        4, 10,
+                        8, 11,
+                        12, 13
+                    ],
                     'text-offset': [0, 1.5],
                     'text-anchor': 'top'
                 },
@@ -348,12 +380,28 @@ class MapboxManager {
                 source: 'seller-ports',
                 layout: {
                     'icon-image': 'seller-marker',
-                    'icon-size': 1,
+                    'icon-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 0.4,
+                        4, 0.8,
+                        8, 1.2,
+                        12, 1.6
+                    ],
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true,
                     'text-field': ['get', 'name'],
                     'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                    'text-size': 11,
+                    'text-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 8,
+                        4, 10,
+                        8, 11,
+                        12, 13
+                    ],
                     'text-offset': [0, 1.5],
                     'text-anchor': 'top'
                 },
