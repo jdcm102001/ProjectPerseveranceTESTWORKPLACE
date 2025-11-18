@@ -300,6 +300,66 @@
     border-color: rgba(0, 0, 0, 0.1);
 }
 
+/* Port Marker Styles */
+.port-marker {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+}
+
+/* Hub Ports (Orange Circle) - Same as Parity for visibility */
+.port-hub {
+    background: #ff8c00;
+    border-radius: 50%;
+}
+
+/* Seller Ports (Yellow Triangle) */
+.port-seller {
+    background: #ffd700;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    width: 16px;
+    height: 16px;
+}
+
+/* Parity Ports (Green Circle) */
+.port-parity {
+    background: #3cb371;
+    border-radius: 50%;
+}
+
+/* Mapbox popup styling for ports */
+.mapboxgl-popup-content {
+    background: rgba(26, 29, 46, 0.95);
+    backdrop-filter: blur(8px);
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mapboxgl-popup-close-button {
+    color: #e2e8f0;
+    font-size: 18px;
+    padding: 4px 8px;
+}
+
+.mapboxgl-popup-close-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .mapboxgl-popup-content {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .mapboxgl-popup-close-button {
+    color: #1e293b;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .maritime-map-container {
