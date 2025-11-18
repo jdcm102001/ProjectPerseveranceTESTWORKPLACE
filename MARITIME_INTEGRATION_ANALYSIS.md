@@ -55,11 +55,11 @@ This analysis focuses on **real-time integration** of the maritime map with your
 │   └── Token: pk.eyJ1IjoiamRjbTEwMjAwMSIsImEiOiJjbWhtcTdhNGQyNHlmMnFwcjF3YTF6YmlyIn0...
 │
 ├── Route Data (Lines 169-470)
-│   └── Embedded JSON with 20 predefined routes
+│   └── Embedded JSON with 24 predefined routes
 │       ├── callao_to_shanghai
 │       ├── callao_to_rotterdam
 │       ├── antofagasta_to_shanghai
-│       └── ... (17 more routes)
+│       └── ... (21 more routes)
 │
 ├── Port Registry (Lines 472-488)
 │   └── 14 ports with coordinates
@@ -839,7 +839,7 @@ export const MARITIME_ROUTES = {
             // ... rest of coordinates
         ]
     },
-    // ... all 20 routes
+    // ... all 24 routes
 };
 
 export function getRouteCoordinates(routeKey) {
@@ -1466,7 +1466,7 @@ Same modular approach as Positions integration, but:
         [121.47, 31.23]
       ]
     }
-    // ... 18 more routes
+    // ... 22 more routes (24 total)
   }
 }
 ```
@@ -1612,7 +1612,8 @@ Since Mapbox free tier tokens are domain-restricted and safe for public exposure
 - [x] Design route lookup strategy
 - [ ] **Extract route coordinates to JSON file**
 - [ ] **Test route coordinate accuracy**
-- [ ] **Verify all 20 routes have matching logistics data**
+- [x] **Verify all 24 routes exist in maritime_routes (1).json** ✅
+- [ ] **Verify all 24 routes have matching logistics data**
 
 ### Phase 1: Module Extraction
 
@@ -1655,7 +1656,7 @@ Since Mapbox free tier tokens are domain-restricted and safe for public exposure
 
 ### Phase 5: Testing & Deployment
 
-- [ ] Test all 20 routes animate correctly
+- [ ] Test all 24 routes animate correctly
 - [ ] Test browser compatibility (Chrome, Firefox, Safari)
 - [ ] Test on mobile devices
 - [ ] Performance testing (10+ active positions)
@@ -1674,9 +1675,9 @@ Since Mapbox free tier tokens are domain-restricted and safe for public exposure
    - Validate JSON format
 
 2. **Verify Route-Logistics Alignment**
-   - Check that all maritime routes have corresponding logistics data
-   - Identify any missing routes
-   - Document route availability matrix
+   - Check that all 24 maritime routes have corresponding logistics data
+   - Confirm complete route coverage (all 24 routes present ✅)
+   - Validate coordinate accuracy for each route
 
 3. **Set Up Development Branch**
    - Create feature branch: `feature/maritime-map-integration`
@@ -1769,20 +1770,46 @@ Since Mapbox free tier tokens are domain-restricted and safe for public exposure
 
 ### 1. Route Availability Matrix
 
-**Not all origin-destination combinations exist!**
+**✅ ALL ROUTES AVAILABLE!**
 
-| From / To | Shanghai | Busan | Rotterdam | Hamburg | New Orleans | Houston | Newark | Montreal |
-|-----------|----------|-------|-----------|---------|-------------|---------|--------|----------|
-| **Callao** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Antofagasta** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+The `maritime_routes (1).json` file contains **24 complete routes** covering all origin-destination combinations:
 
-**Missing Routes:**
-- Callao → New Orleans
-- Callao → Houston
-- Callao → Newark
-- Callao → Montreal
+| From / To | Shanghai | Busan | Ningbo | Singapore | Rotterdam | Hamburg | Antwerp | Valencia | New Orleans | Houston | Newark | Montreal |
+|-----------|----------|-------|--------|-----------|-----------|---------|---------|----------|-------------|---------|--------|----------|
+| **Callao** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Antofagasta** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-**Solution:** Check route existence before rendering, show warning if unavailable
+**Complete Route List:**
+
+**From Callao (12 routes):**
+- callao_to_shanghai
+- callao_to_busan
+- callao_to_ningbo
+- callao_to_singapore
+- callao_to_rotterdam
+- callao_to_hamburg
+- callao_to_antwerp
+- callao_to_valencia
+- callao_to_neworleans
+- callao_to_houston
+- callao_to_newark
+- callao_to_montreal
+
+**From Antofagasta (12 routes):**
+- antofagasta_to_shanghai
+- antofagasta_to_busan
+- antofagasta_to_ningbo
+- antofagasta_to_singapore
+- antofagasta_to_rotterdam
+- antofagasta_to_hamburg
+- antofagasta_to_antwerp
+- antofagasta_to_valencia
+- antofagasta_to_neworleans
+- antofagasta_to_houston
+- antofagasta_to_newark
+- antofagasta_to_montreal
+
+**Total: 24 routes** - complete coverage for all gameplay scenarios!
 
 ### 2. Coordinate System Handling
 
