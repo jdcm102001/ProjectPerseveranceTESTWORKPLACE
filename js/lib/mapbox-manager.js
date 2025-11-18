@@ -157,9 +157,10 @@ class MapboxManager {
     /**
      * Create circle marker icon (for HUB and PARITY ports)
      * @param {string} color - Fill color for the circle
+     * @param {boolean} enhanced - Add glow effect for better visibility
      * @returns {HTMLCanvasElement}
      */
-    createCircleMarker(color) {
+    createCircleMarker(color, enhanced = false) {
         const size = 24;
         const canvas = document.createElement('canvas');
         canvas.width = size;
@@ -170,11 +171,26 @@ class MapboxManager {
         const cy = size / 2;
         const radius = 8;
 
+        // Add glow effect for enhanced markers (hub ports)
+        if (enhanced) {
+            // Outer glow
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = color;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+
         // Draw circle
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
+
+        // Reset shadow for stroke
+        if (enhanced) {
+            ctx.shadowBlur = 0;
+        }
+
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -223,8 +239,9 @@ class MapboxManager {
 
         try {
             // Create marker icons
-            const greenCircle = this.createCircleMarker('#10B981'); // Green for HUB
-            const yellowCircle = this.createCircleMarker('#F59E0B'); // Yellow for PARITY
+            // Use brighter, more luminous green with glow effect for HUB ports for better visibility
+            const greenCircle = this.createCircleMarker('#00FF88', true); // Bright green with glow for HUB
+            const yellowCircle = this.createCircleMarker('#F59E0B', false); // Yellow for PARITY
             const redTriangle = this.createTriangleMarker('#EF4444'); // Red for SELLER
 
             // Convert to ImageData
@@ -330,9 +347,9 @@ class MapboxManager {
                     'text-anchor': 'top'
                 },
                 paint: {
-                    'text-color': '#10B981',
+                    'text-color': '#00FF88',
                     'text-halo-color': '#000000',
-                    'text-halo-width': 1
+                    'text-halo-width': 1.5
                 }
             });
 

@@ -273,7 +273,7 @@ async function createWidgetContent(widgetName, isActive) {
                     <div class="maritime-map-legend">
                         <div class="maritime-map-legend-title">Port Types</div>
                         <div class="maritime-map-legend-item">
-                            <div class="port-marker-circle" style="background: #10B981;"></div>
+                            <div class="port-marker-circle" style="background: #00FF88; box-shadow: 0 0 8px #00FF88;"></div>
                             <div class="maritime-map-legend-label">Hub Ports</div>
                         </div>
                         <div class="maritime-map-legend-item">
