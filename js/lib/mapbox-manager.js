@@ -780,6 +780,12 @@ class MapboxManager {
         });
         this.activeShipments.clear();
 
+        // Remove all port markers
+        this.portMarkers.forEach((marker) => {
+            marker.remove();
+        });
+        this.portMarkers.clear();
+
         // Remove map
         if (this.map) {
             this.map.remove();
