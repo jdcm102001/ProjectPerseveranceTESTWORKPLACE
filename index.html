@@ -64,38 +64,73 @@
         </div>
 
         <!-- Expandable Market Data Section -->
-        <div id="marketDataExpanded" style="display: none; margin-left: 20px; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1);">
-            <div class="header-metric">
-                <div class="header-metric-label">LOC Used</div>
-                <div class="header-metric-value" id="headerLOC">$0 / $200K</div>
+        <div id="marketDataExpanded" class="market-data-expanded" style="display: none;">
+            <!-- Financial Group -->
+            <div class="market-data-group">
+                <div class="market-data-group-title">💰 FINANCIAL</div>
+                <div class="market-data-metrics">
+                    <div class="header-metric">
+                        <div class="header-metric-label">Buying Power</div>
+                        <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
+                    </div>
+                    <div class="header-metric">
+                        <div class="header-metric-label">LOC Used</div>
+                        <div class="header-metric-value" id="headerLOC">$0 / $200K</div>
+                    </div>
+                    <div class="header-metric">
+                        <div class="header-metric-label">LOC Interest (Next)</div>
+                        <div class="header-metric-value" id="headerLOCInterest">$0</div>
+                    </div>
+                </div>
             </div>
-            <div class="header-metric">
-                <div class="header-metric-label">Buying Power</div>
-                <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
+
+            <!-- Market Prices Group -->
+            <div class="market-data-group">
+                <div class="market-data-group-title">📊 MARKET PRICES</div>
+                <div class="market-data-metrics">
+                    <div class="header-metric">
+                        <div class="header-metric-label">LME (0)</div>
+                        <div class="header-metric-value" id="headerLMESpot">$8,960</div>
+                    </div>
+                    <div class="header-metric">
+                        <div class="header-metric-label">LME (3M)</div>
+                        <div class="header-metric-value" id="headerLME3M">$9,210</div>
+                    </div>
+                    <div class="header-metric">
+                        <div class="header-metric-label">COMEX (0)</div>
+                        <div class="header-metric-value" id="headerCOMEXSpot">$9,344</div>
+                    </div>
+                    <div class="header-metric">
+                        <div class="header-metric-label">COMEX (3M)</div>
+                        <div class="header-metric-value" id="headerCOMEX3M">$9,594</div>
+                    </div>
+                </div>
             </div>
-            <div class="header-metric">
-                <div class="header-metric-label">LOC Interest (Next)</div>
-                <div class="header-metric-value" id="headerLOCInterest">$0</div>
+
+            <!-- Rates Group -->
+            <div class="market-data-group">
+                <div class="market-data-group-title">📈 RATES</div>
+                <div class="market-data-metrics">
+                    <div class="header-metric">
+                        <div class="header-metric-label">SOFR (1M)</div>
+                        <div class="header-metric-value" id="headerSOFR">4.30%</div>
+                    </div>
+                    <div class="header-metric">
+                        <div class="header-metric-label">Cost of Carry</div>
+                        <div class="header-metric-value" id="headerCostOfCarry">0.46%/mo</div>
+                    </div>
+                </div>
             </div>
-            <div class="header-metric">
-                <div class="header-metric-label">LME (0)</div>
-                <div class="header-metric-value" id="headerLMESpot">$8,960</div>
-            </div>
-            <div class="header-metric">
-                <div class="header-metric-label">LME (3M)</div>
-                <div class="header-metric-value" id="headerLME3M">$9,210</div>
-            </div>
-            <div class="header-metric">
-                <div class="header-metric-label">COMEX (0)</div>
-                <div class="header-metric-value" id="headerCOMEXSpot">$9,344</div>
-            </div>
-            <div class="header-metric">
-                <div class="header-metric-label">COMEX (3M)</div>
-                <div class="header-metric-value" id="headerCOMEX3M">$9,594</div>
-            </div>
-            <div class="header-metric">
-                <div class="header-metric-label">Physical MT</div>
-                <div class="header-metric-value" id="headerPhysicalMT">0</div>
+
+            <!-- Portfolio Group -->
+            <div class="market-data-group">
+                <div class="market-data-group-title">📦 PORTFOLIO</div>
+                <div class="market-data-metrics">
+                    <div class="header-metric">
+                        <div class="header-metric-label">Physical MT</div>
+                        <div class="header-metric-value" id="headerPhysicalMT">0</div>
+                    </div>
+                </div>
             </div>
         </div>
 

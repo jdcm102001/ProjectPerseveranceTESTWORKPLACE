@@ -274,6 +274,12 @@ const GAME_STATE = {
         document.getElementById('headerCOMEXSpot').textContent = `$${data.PRICING.COMEX.SPOT_AVG.toLocaleString('en-US')}`;
         document.getElementById('headerCOMEX3M').textContent = `$${data.PRICING.COMEX.FUTURES_3M.toLocaleString('en-US')}`;
 
+        // Update SOFR and Cost of Carry
+        const sofrPercent = data.FIXED_RULES.COST_OF_CARRY.SOFR_1M_PERCENT;
+        const monthlyRate = data.FIXED_RULES.COST_OF_CARRY.MONTHLY_RATE;
+        document.getElementById('headerSOFR').textContent = `${sofrPercent.toFixed(2)}%`;
+        document.getElementById('headerCostOfCarry').textContent = `${(monthlyRate * 100).toFixed(2)}%/mo`;
+
         const totalPhysicalMT = this.physicalPositions.reduce((sum, pos) => sum + pos.tonnage, 0);
         document.getElementById('headerPhysicalMT').textContent = totalPhysicalMT.toFixed(1);
 
