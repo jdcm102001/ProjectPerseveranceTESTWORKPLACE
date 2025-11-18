@@ -15,7 +15,7 @@ class MapboxManager {
         this.activeShipments = new Map(); // positionId -> animation state
         this.animationFrameId = null;
         this.shipIconLoaded = false;
-        this.portMarkers = new Map(); // portId -> marker instance
+        this.portMarkersLoaded = false;
     }
 
     /**
@@ -47,10 +47,15 @@ class MapboxManager {
                 this.map.on('load', () => {
                     console.log('[Mapbox Manager] Map loaded successfully');
                     this.isInitialized = true;
-                    this.loadShipIcon().then(() => {
-                        this.addPortMarkers();
-                        resolve(this.map);
-                    });
+                    this.loadShipIcon()
+                        .then(() => this.loadPortMarkers())
+                        .then(() => {
+                            resolve(this.map);
+                        })
+                        .catch((error) => {
+                            console.error('[Mapbox Manager] Failed to load icons:', error);
+                            reject(error);
+                        });
                 });
 
                 this.map.on('error', (e) => {
@@ -66,6 +71,49 @@ class MapboxManager {
     }
 
     /**
+     * Create ship icon using canvas
+     * @returns {HTMLCanvasElement}
+     */
+    createShipIcon() {
+        const size = 32;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Center point
+        const cx = size / 2;
+        const cy = size / 2;
+
+        // Draw ship body (triangle pointing up)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 10); // Top point (front of ship)
+        ctx.lineTo(cx - 8, cy + 4); // Bottom left
+        ctx.lineTo(cx + 8, cy + 4); // Bottom right
+        ctx.closePath();
+        ctx.fillStyle = '#4A9EFF';
+        ctx.fill();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Draw ship bridge (rectangle)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(cx - 4, cy - 6, 8, 4);
+        ctx.strokeStyle = '#4A9EFF';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - 4, cy - 6, 8, 4);
+
+        // Draw direction indicator (circle at front)
+        ctx.beginPath();
+        ctx.arc(cx, cy - 10, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFA500';
+        ctx.fill();
+
+        return canvas;
+    }
+
+    /**
      * Load ship icon as map image
      * @returns {Promise<void>}
      */
@@ -75,26 +123,22 @@ class MapboxManager {
         }
 
         return new Promise((resolve, reject) => {
-            const shipIconUrl = 'data:image/svg+xml;base64,' + btoa(`
-                <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                    <g transform="translate(16,16)">
-                        <!-- Ship body -->
-                        <path d="M-8,-4 L0,-10 L8,-4 L8,4 L-8,4 Z" fill="#4A9EFF" stroke="#FFFFFF" stroke-width="1.5"/>
-                        <!-- Ship bridge -->
-                        <rect x="-4" y="-6" width="8" height="4" fill="#FFFFFF" stroke="#4A9EFF" stroke-width="1"/>
-                        <!-- Direction indicator (front of ship) -->
-                        <circle cx="0" cy="-10" r="2" fill="#FFA500"/>
-                    </g>
-                </svg>
-            `);
+            try {
+                // Create ship icon canvas
+                const canvas = this.createShipIcon();
 
-            this.map.loadImage(shipIconUrl, (error, image) => {
-                if (error) {
-                    console.error('[Mapbox Manager] Failed to load ship icon:', error);
-                    reject(error);
-                    return;
-                }
+                // Convert canvas to ImageData for Mapbox
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+                // Create Mapbox-compatible image object
+                const image = {
+                    width: canvas.width,
+                    height: canvas.height,
+                    data: imageData.data
+                };
+
+                // Add to map
                 if (!this.map.hasImage('ship-icon')) {
                     this.map.addImage('ship-icon', image);
                 }
@@ -102,56 +146,302 @@ class MapboxManager {
                 this.shipIconLoaded = true;
                 console.log('[Mapbox Manager] Ship icon loaded');
                 resolve();
-            });
+
+            } catch (error) {
+                console.error('[Mapbox Manager] Failed to load ship icon:', error);
+                reject(error);
+            }
         });
     }
 
     /**
-     * Add port markers to the map
-     * Uses DOM markers for all ports to ensure consistent visibility at all zoom levels
+     * Create circle marker icon (for HUB and PARITY ports)
+     * @param {string} color - Fill color for the circle
+     * @param {boolean} enhanced - Add glow effect for better visibility
+     * @returns {HTMLCanvasElement}
      */
-    addPortMarkers() {
-        // Hub ports - major distribution centers
-        const hubPorts = ['shanghai', 'neworleans', 'rotterdam'];
-        // Seller ports - origin/supplier ports
-        const sellerPorts = ['antofagasta', 'callao'];
-        // All other ports are parity ports
+    createCircleMarker(color, enhanced = false) {
+        // Use larger canvas size for enhanced markers to accommodate shadow blur
+        // Shadow blur of 8px needs at least 10px padding on each side
+        const size = enhanced ? 44 : 24;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
 
-        Object.entries(PORT_LOCATIONS).forEach(([portId, portData]) => {
-            // Create marker element
-            const el = document.createElement('div');
-            el.className = 'port-marker';
+        const cx = size / 2;
+        const cy = size / 2;
+        const radius = 8;
 
-            // Apply category-specific styling
-            // IMPORTANT: Both hub and parity ports use the same DOM marker approach
-            // This ensures they have identical visibility behavior at all zoom levels
-            if (hubPorts.includes(portId)) {
-                el.classList.add('port-hub'); // Orange circle - Hub
-            } else if (sellerPorts.includes(portId)) {
-                el.classList.add('port-seller'); // Yellow triangle - Seller
-            } else {
-                el.classList.add('port-parity'); // Green circle - Parity
-            }
+        // Add glow effect for enhanced markers (hub ports)
+        if (enhanced) {
+            // Outer glow - canvas is now large enough to contain the full blur
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = color;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
 
-            // Create and add marker to map
-            const marker = new mapboxgl.Marker(el)
-                .setLngLat(portData.coordinates)
-                .setPopup(
-                    new mapboxgl.Popup({ offset: 25 })
-                        .setHTML(`
-                            <strong>${portData.displayName}</strong><br>
-                            <span style="font-size: 11px; color: #94a3b8;">
-                                ${portData.country} • ${portData.category}
-                            </span>
-                        `)
-                )
-                .addTo(this.map);
+        // Draw circle
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
 
-            // Store marker reference
-            this.portMarkers.set(portId, marker);
-        });
+        // Reset shadow for stroke
+        if (enhanced) {
+            ctx.shadowBlur = 0;
+        }
 
-        console.log('[Mapbox Manager] Added', this.portMarkers.size, 'port markers to map');
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    /**
+     * Create triangle marker icon (for SELLER ports)
+     * @param {string} color - Fill color for the triangle
+     * @returns {HTMLCanvasElement}
+     */
+    createTriangleMarker(color) {
+        const size = 24;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const cx = size / 2;
+        const cy = size / 2;
+
+        // Draw triangle pointing up
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 9); // Top point
+        ctx.lineTo(cx - 9, cy + 6); // Bottom left
+        ctx.lineTo(cx + 9, cy + 6); // Bottom right
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    /**
+     * Load port marker icons and add port markers to map
+     * @returns {Promise<void>}
+     */
+    async loadPortMarkers() {
+        if (this.portMarkersLoaded) {
+            return Promise.resolve();
+        }
+
+        try {
+            // Create marker icons
+            // Use brighter, more luminous green with glow effect for HUB ports for better visibility
+            const greenCircle = this.createCircleMarker('#00FF88', true); // Bright green with glow for HUB
+            const yellowCircle = this.createCircleMarker('#F59E0B', false); // Yellow for PARITY
+            const redTriangle = this.createTriangleMarker('#EF4444'); // Red for SELLER
+
+            // Convert to ImageData
+            const addMarkerImage = (name, canvas) => {
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const image = {
+                    width: canvas.width,
+                    height: canvas.height,
+                    data: imageData.data
+                };
+                if (!this.map.hasImage(name)) {
+                    this.map.addImage(name, image);
+                }
+            };
+
+            addMarkerImage('hub-marker', greenCircle);
+            addMarkerImage('parity-marker', yellowCircle);
+            addMarkerImage('seller-marker', redTriangle);
+
+            // Create GeoJSON features for each port category
+            const hubPorts = [];
+            const parityPorts = [];
+            const sellerPorts = [];
+
+            Object.entries(PORT_LOCATIONS).forEach(([key, port]) => {
+                const feature = {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: port.coordinates
+                    },
+                    properties: {
+                        name: port.displayName,
+                        category: port.category
+                    }
+                };
+
+                if (port.category === 'HUB') {
+                    hubPorts.push(feature);
+                } else if (port.category === 'PARITY') {
+                    parityPorts.push(feature);
+                } else if (port.category === 'SELLER') {
+                    sellerPorts.push(feature);
+                }
+            });
+
+            // Add sources
+            this.map.addSource('hub-ports', {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: hubPorts
+                }
+            });
+
+            this.map.addSource('parity-ports', {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: parityPorts
+                }
+            });
+
+            this.map.addSource('seller-ports', {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: sellerPorts
+                }
+            });
+
+            // Add layers for port markers
+            this.map.addLayer({
+                id: 'hub-ports-layer',
+                type: 'symbol',
+                source: 'hub-ports',
+                layout: {
+                    'icon-image': 'hub-marker',
+                    'icon-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 0.4,   // At zoom 1 (very zoomed out), icons are 0.4x
+                        4, 0.8,   // At zoom 4, icons are 0.8x
+                        8, 1.2,   // At zoom 8, icons are 1.2x
+                        12, 1.6   // At zoom 12 (zoomed in), icons are 1.6x
+                    ],
+                    'icon-allow-overlap': true,
+                    'icon-ignore-placement': true,
+                    'text-field': ['get', 'name'],
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 8,     // At zoom 1, text size is 8
+                        4, 10,    // At zoom 4, text size is 10
+                        8, 11,    // At zoom 8, text size is 11
+                        12, 13    // At zoom 12, text size is 13
+                    ],
+                    'text-offset': [0, 1.5],
+                    'text-anchor': 'top'
+                },
+                paint: {
+                    'text-color': '#00FF88',
+                    'text-halo-color': '#000000',
+                    'text-halo-width': 1.5
+                }
+            });
+
+            this.map.addLayer({
+                id: 'parity-ports-layer',
+                type: 'symbol',
+                source: 'parity-ports',
+                layout: {
+                    'icon-image': 'parity-marker',
+                    'icon-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 0.4,
+                        4, 0.8,
+                        8, 1.2,
+                        12, 1.6
+                    ],
+                    'icon-allow-overlap': true,
+                    'icon-ignore-placement': true,
+                    'text-field': ['get', 'name'],
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 8,
+                        4, 10,
+                        8, 11,
+                        12, 13
+                    ],
+                    'text-offset': [0, 1.5],
+                    'text-anchor': 'top'
+                },
+                paint: {
+                    'text-color': '#F59E0B',
+                    'text-halo-color': '#000000',
+                    'text-halo-width': 1
+                }
+            });
+
+            this.map.addLayer({
+                id: 'seller-ports-layer',
+                type: 'symbol',
+                source: 'seller-ports',
+                layout: {
+                    'icon-image': 'seller-marker',
+                    'icon-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 0.4,
+                        4, 0.8,
+                        8, 1.2,
+                        12, 1.6
+                    ],
+                    'icon-allow-overlap': true,
+                    'icon-ignore-placement': true,
+                    'text-field': ['get', 'name'],
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-size': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        1, 8,
+                        4, 10,
+                        8, 11,
+                        12, 13
+                    ],
+                    'text-offset': [0, 1.5],
+                    'text-anchor': 'top'
+                },
+                paint: {
+                    'text-color': '#EF4444',
+                    'text-halo-color': '#000000',
+                    'text-halo-width': 1
+                }
+            });
+
+            this.portMarkersLoaded = true;
+            console.log('[Mapbox Manager] Port markers loaded:', {
+                hub: hubPorts.length,
+                parity: parityPorts.length,
+                seller: sellerPorts.length
+            });
+
+        } catch (error) {
+            console.error('[Mapbox Manager] Failed to load port markers:', error);
+            throw error;
+        }
     }
 
     /**

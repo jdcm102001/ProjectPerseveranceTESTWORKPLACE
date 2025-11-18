@@ -4,7 +4,7 @@
 /* Map container */
 .maritime-map-container {
     width: 100%;
-    height: 350px;
+    height: 500px;
     position: relative;
     background: var(--bg-secondary, #1a1d2e);
     border-radius: 8px;
@@ -197,6 +197,25 @@
     color: var(--text-primary, #e2e8f0);
 }
 
+/* Port marker legend icons */
+.port-marker-circle {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #FFFFFF;
+    flex-shrink: 0;
+}
+
+.port-marker-triangle {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 14px solid;
+    border-top: 0;
+    flex-shrink: 0;
+}
+
 /* Empty state (no active shipments) */
 .maritime-map-empty {
     position: absolute;
@@ -363,7 +382,7 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .maritime-map-container {
-        height: 250px;
+        height: 350px;
     }
 
     .maritime-map-header,
