@@ -30,21 +30,54 @@ const MarketsWidget = {
 
         // Show Callao LTA row only if Peruvian is primary
         if (peruvianData.IS_PRIMARY) {
+            // LTA Row - Combine seller name + contract type + availability
+            const ltaSellerInfo = `
+                <span class="port-name">CALLAO</span>
+                <span class="badge badge-lta" style="margin-left: 4px;">LTA</span>
+                <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                    ${ltaRemaining} MT ${ltaRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}
+                </div>
+            `;
+
+            // LTA Pricing - Combine exchange + QP + premium
+            const ltaPricingInfo = `
+                <span class="exchange-badge">LME</span>
+                <span class="exchange-badge" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: #fbbf24; margin-left: 4px;">M+1</span>
+                <div class="premium-positive" style="margin-top: 4px;">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</div>
+            `;
+
             rows.push(`
                 <tr>
-                    <td><span class="port-name">CALLAO</span><span class="badge badge-lta">LTA</span></td>
-                    <td>${ltaRemaining} MT REMAINING ${ltaRemaining === 0 ? '(SOLD OUT)' : ''}</td>
-                    <td>LME M+1</td>
-                    <td class="premium-positive">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</td>
+                    <td>${ltaSellerInfo}</td>
+                    <td>Callao, Peru</td>
+                    <td>${ltaPricingInfo}</td>
                     <td><button class="trade-btn buy-btn" ${ltaRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="CALLAO" data-port="Callao, Peru" data-min="${peruvianData.LTA_FIXED_MT}" data-max="${peruvianData.LTA_FIXED_MT}" data-basis="LME" data-premium="${peruvianData.SUPPLIER_PREMIUM_USD}" data-islta="true">TRADE</button></td>
                 </tr>
             `);
+
+            // SPOT Row - Combine seller name + contract type + availability
+            const spotSellerInfo = `
+                <span class="port-name">CALLAO</span>
+                <span class="badge badge-spot" style="margin-left: 4px;">SPOT</span>
+                <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                    ${peruvianData.LTA_FIXED_MT}–${spotRemaining} MT ${spotRemaining === 0 ? '(SOLD OUT)' : ''}
+                </div>
+            `;
+
+            // SPOT Pricing - Combine exchange options + QP + premium
+            const spotPricingInfo = `
+                <span class="exchange-badge">LME</span>
+                <span style="color: #888; font-size: 11px; margin: 0 2px;">/</span>
+                <span class="exchange-badge">COMEX</span>
+                <span class="exchange-badge" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: #fbbf24; margin-left: 4px;">M+1</span>
+                <div class="premium-positive" style="margin-top: 4px;">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</div>
+            `;
+
             rows.push(`
                 <tr>
-                    <td><span class="port-name">CALLAO</span><span class="badge badge-spot">SPOT</span></td>
-                    <td>${peruvianData.LTA_FIXED_MT}–${spotRemaining} MT ${spotRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}</td>
-                    <td>LME / COMEX M+1</td>
-                    <td class="premium-positive">+$${peruvianData.SUPPLIER_PREMIUM_USD}/MT</td>
+                    <td>${spotSellerInfo}</td>
+                    <td>Callao, Peru</td>
+                    <td>${spotPricingInfo}</td>
                     <td><button class="trade-btn buy-btn" ${spotRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="CALLAO" data-port="Callao, Peru" data-min="${peruvianData.LTA_FIXED_MT}" data-max="${spotRemaining}" data-basis="LME_COMEX" data-premium="${peruvianData.SUPPLIER_PREMIUM_USD}" data-islta="false">TRADE</button></td>
                 </tr>
             `);
@@ -52,12 +85,29 @@ const MarketsWidget = {
 
         // Show Antofagasta row only if Chilean is primary
         if (chileanData.IS_PRIMARY) {
+            // Chilean SPOT Row - Combine seller name + contract type + availability
+            const chileanSellerInfo = `
+                <span class="port-name">ANTOFAGASTA</span>
+                <span class="badge badge-spot" style="margin-left: 4px;">SPOT</span>
+                <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                    ${chileanData.MIN_AVAILABLE_MT}–${chileanRemaining} MT ${chileanRemaining === 0 ? '(SOLD OUT)' : ''}
+                </div>
+            `;
+
+            // Chilean Pricing - Combine exchange options + QP + premium
+            const chileanPricingInfo = `
+                <span class="exchange-badge">LME</span>
+                <span style="color: #888; font-size: 11px; margin: 0 2px;">/</span>
+                <span class="exchange-badge">COMEX</span>
+                <span class="exchange-badge" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: #fbbf24; margin-left: 4px;">M+1</span>
+                <div class="premium-positive" style="margin-top: 4px;">+$${chileanData.SUPPLIER_PREMIUM_USD}/MT</div>
+            `;
+
             rows.push(`
                 <tr>
-                    <td><span class="port-name">ANTOFAGASTA</span><span class="badge badge-spot">SPOT</span></td>
-                    <td>${chileanData.MIN_AVAILABLE_MT}–${chileanRemaining} MT ${chileanRemaining === 0 ? '(SOLD OUT)' : 'REMAINING'}</td>
-                    <td>LME / COMEX M+1</td>
-                    <td>$${chileanData.SUPPLIER_PREMIUM_USD}/MT</td>
+                    <td>${chileanSellerInfo}</td>
+                    <td>Antofagasta, Chile</td>
+                    <td>${chileanPricingInfo}</td>
                     <td><button class="trade-btn buy-btn" ${chileanRemaining === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} data-action="buy" data-supplier="ANTOFAGASTA" data-port="Antofagasta, Chile" data-min="${chileanData.MIN_AVAILABLE_MT}" data-max="${chileanRemaining}" data-basis="LME_COMEX" data-premium="${chileanData.SUPPLIER_PREMIUM_USD}" data-islta="false">TRADE</button></td>
                 </tr>
             `);
