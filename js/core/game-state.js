@@ -264,34 +264,25 @@ const GAME_STATE = {
 
     updateHeader() {
         const data = this.currentMonthData;
+
+        // Always visible: Month
         document.getElementById('headerMonth').textContent = `${this.currentMonth.toUpperCase()} (${this.currentTurn}/12)`;
-        document.getElementById('headerFunds').textContent = `$${Math.round(this.practiceFunds).toLocaleString('en-US')}`;
+
+        // Key Metrics (expandable section)
+        const buyingPower = this.practiceFunds + (this.locLimit - this.locUsed);
+        document.getElementById('headerBuyingPower').textContent = `$${Math.round(buyingPower).toLocaleString('en-US')}`;
         document.getElementById('headerLOC').textContent = `$${Math.round(this.locUsed).toLocaleString('en-US')} / $${this.locLimit.toLocaleString('en-US')}`;
-        document.getElementById('headerBuyingPower').textContent = `$${Math.round(this.practiceFunds + (this.locLimit - this.locUsed)).toLocaleString('en-US')}`;
         document.getElementById('headerLOCInterest').textContent = `$${Math.round(this.locInterestNextMonth).toLocaleString('en-US')}`;
-        document.getElementById('headerLMESpot').textContent = `$${data.PRICING.LME.SPOT_AVG.toLocaleString('en-US')}`;
-        document.getElementById('headerLME3M').textContent = `$${data.PRICING.LME.FUTURES_3M.toLocaleString('en-US')}`;
-        document.getElementById('headerCOMEXSpot').textContent = `$${data.PRICING.COMEX.SPOT_AVG.toLocaleString('en-US')}`;
-        document.getElementById('headerCOMEX3M').textContent = `$${data.PRICING.COMEX.FUTURES_3M.toLocaleString('en-US')}`;
 
+        // Calculate yearly interest rate from monthly SOFR
+        // SOFR_1M_PERCENT is the 1-month rate, multiply by 12 for yearly
+        const monthlySOFR = data.FIXED_RULES.COST_OF_CARRY.SOFR_1M_PERCENT;
+        const yearlyRate = (monthlySOFR * 12).toFixed(2);
+        document.getElementById('headerInterestRate').textContent = `${yearlyRate}%`;
+
+        // Physical inventory
         const totalPhysicalMT = this.physicalPositions.reduce((sum, pos) => sum + pos.tonnage, 0);
-        document.getElementById('headerPhysicalMT').textContent = totalPhysicalMT.toFixed(1);
-
-        const marginPostedEl = document.getElementById('headerMarginPosted');
-        if (marginPostedEl) {
-            marginPostedEl.textContent = `$${Math.round(this.futuresMarginPosted).toLocaleString('en-US')} / $100K`;
-        }
-
-        document.getElementById('headerPL').textContent = `$${Math.round(this.totalPL).toLocaleString('en-US')}`;
-
-        // Calculate and display price exposure
-        const exposureData = this.calculatePriceExposure();
-        const exposureEl = document.getElementById('headerExposure');
-        if (exposureEl) {
-            const exposureText = `${exposureData.riskIcon} $${Math.round(exposureData.totalExposure).toLocaleString('en-US')} (${exposureData.exposurePercentage.toFixed(1)}%)`;
-            exposureEl.textContent = exposureText;
-            exposureEl.style.color = exposureData.riskColor;
-        }
+        document.getElementById('headerPhysicalMT').textContent = `${totalPhysicalMT.toFixed(1)} MT`;
 
         // Update widget elevation based on current state
         if (typeof window.updateWidgetElevation === 'function') {

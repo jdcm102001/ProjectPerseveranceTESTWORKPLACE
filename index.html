@@ -41,66 +41,38 @@
 <body>
     <!-- Fixed Header Bar -->
     <div class="header-bar">
-        <!-- Always Visible - Core Metrics -->
+        <!-- Always Visible - Month Only -->
         <div class="header-metric">
             <div class="header-metric-label">Month</div>
             <div class="header-metric-value" id="headerMonth">JAN (1/12)</div>
         </div>
-        <div class="header-metric">
-            <div class="header-metric-label">Practice Funds</div>
-            <div class="header-metric-value" id="headerFunds">$200,000</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">Margin Posted</div>
-            <div class="header-metric-value" id="headerMarginPosted">$0 / $100K</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">Total P&L</div>
-            <div class="header-metric-value" id="headerPL">$0</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">Price Exposure</div>
-            <div class="header-metric-value" id="headerExposure">🟢 $0 (0%)</div>
-        </div>
 
-        <!-- Expandable Market Data Section -->
-        <div id="marketDataExpanded" style="display: none; margin-left: 20px; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1);">
-            <div class="header-metric">
-                <div class="header-metric-label">LOC Used</div>
-                <div class="header-metric-value" id="headerLOC">$0 / $200K</div>
-            </div>
+        <!-- Expandable Key Metrics Section -->
+        <div id="keyMetricsExpanded" style="display: none; margin-left: auto; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1); gap: 30px;">
             <div class="header-metric">
                 <div class="header-metric-label">Buying Power</div>
                 <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
             </div>
             <div class="header-metric">
-                <div class="header-metric-label">LOC Interest (Next)</div>
+                <div class="header-metric-label">LOC Used</div>
+                <div class="header-metric-value" id="headerLOC">$0 / $200K</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">LOC Interest</div>
                 <div class="header-metric-value" id="headerLOCInterest">$0</div>
             </div>
             <div class="header-metric">
-                <div class="header-metric-label">LME (0)</div>
-                <div class="header-metric-value" id="headerLMESpot">$8,960</div>
+                <div class="header-metric-label">Interest Rate</div>
+                <div class="header-metric-value" id="headerInterestRate">5.33%</div>
             </div>
             <div class="header-metric">
-                <div class="header-metric-label">LME (3M)</div>
-                <div class="header-metric-value" id="headerLME3M">$9,210</div>
-            </div>
-            <div class="header-metric">
-                <div class="header-metric-label">COMEX (0)</div>
-                <div class="header-metric-value" id="headerCOMEXSpot">$9,344</div>
-            </div>
-            <div class="header-metric">
-                <div class="header-metric-label">COMEX (3M)</div>
-                <div class="header-metric-value" id="headerCOMEX3M">$9,594</div>
-            </div>
-            <div class="header-metric">
-                <div class="header-metric-label">Physical MT</div>
-                <div class="header-metric-value" id="headerPhysicalMT">0</div>
+                <div class="header-metric-label">Physical Inventory</div>
+                <div class="header-metric-value" id="headerPhysicalMT">0 MT</div>
             </div>
         </div>
 
         <!-- Toggle Button and Controls -->
-        <button class="market-data-toggle" id="marketDataToggle" title="Show/Hide Market Data">📊 Market Data ▼</button>
+        <button class="key-metrics-toggle" id="keyMetricsToggle" title="Show/Hide Key Metrics">📊 Key Metrics ▼</button>
         <button class="next-turn-btn" id="nextTurnBtn">NEXT TURN ▶</button>
         <button class="theme-toggle" id="themeToggleBtn">☀️ Light Mode</button>
     </div>
