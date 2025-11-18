@@ -64,6 +64,49 @@ class MapboxManager {
     }
 
     /**
+     * Create ship icon using canvas
+     * @returns {HTMLCanvasElement}
+     */
+    createShipIcon() {
+        const size = 32;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Center point
+        const cx = size / 2;
+        const cy = size / 2;
+
+        // Draw ship body (triangle pointing up)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 10); // Top point (front of ship)
+        ctx.lineTo(cx - 8, cy + 4); // Bottom left
+        ctx.lineTo(cx + 8, cy + 4); // Bottom right
+        ctx.closePath();
+        ctx.fillStyle = '#4A9EFF';
+        ctx.fill();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Draw ship bridge (rectangle)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(cx - 4, cy - 6, 8, 4);
+        ctx.strokeStyle = '#4A9EFF';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - 4, cy - 6, 8, 4);
+
+        // Draw direction indicator (circle at front)
+        ctx.beginPath();
+        ctx.arc(cx, cy - 10, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFA500';
+        ctx.fill();
+
+        return canvas;
+    }
+
+    /**
      * Load ship icon as map image
      * @returns {Promise<void>}
      */
@@ -73,26 +116,22 @@ class MapboxManager {
         }
 
         return new Promise((resolve, reject) => {
-            const shipIconUrl = 'data:image/svg+xml;base64,' + btoa(`
-                <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                    <g transform="translate(16,16)">
-                        <!-- Ship body -->
-                        <path d="M-8,-4 L0,-10 L8,-4 L8,4 L-8,4 Z" fill="#4A9EFF" stroke="#FFFFFF" stroke-width="1.5"/>
-                        <!-- Ship bridge -->
-                        <rect x="-4" y="-6" width="8" height="4" fill="#FFFFFF" stroke="#4A9EFF" stroke-width="1"/>
-                        <!-- Direction indicator (front of ship) -->
-                        <circle cx="0" cy="-10" r="2" fill="#FFA500"/>
-                    </g>
-                </svg>
-            `);
+            try {
+                // Create ship icon canvas
+                const canvas = this.createShipIcon();
 
-            this.map.loadImage(shipIconUrl, (error, image) => {
-                if (error) {
-                    console.error('[Mapbox Manager] Failed to load ship icon:', error);
-                    reject(error);
-                    return;
-                }
+                // Convert canvas to ImageData for Mapbox
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+                // Create Mapbox-compatible image object
+                const image = {
+                    width: canvas.width,
+                    height: canvas.height,
+                    data: imageData.data
+                };
+
+                // Add to map
                 if (!this.map.hasImage('ship-icon')) {
                     this.map.addImage('ship-icon', image);
                 }
@@ -100,7 +139,11 @@ class MapboxManager {
                 this.shipIconLoaded = true;
                 console.log('[Mapbox Manager] Ship icon loaded');
                 resolve();
-            });
+
+            } catch (error) {
+                console.error('[Mapbox Manager] Failed to load ship icon:', error);
+                reject(error);
+            }
         });
     }
 
