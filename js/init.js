@@ -125,31 +125,31 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
     document.getElementById('closeSaleDetailsBtn')?.addEventListener('click', closeSaleDetails);
 
-    // Market data toggle functionality
-    document.getElementById('marketDataToggle')?.addEventListener('click', function() {
-        const expanded = document.getElementById('marketDataExpanded');
+    // Key Metrics toggle functionality
+    document.getElementById('keyMetricsToggle')?.addEventListener('click', function() {
+        const expanded = document.getElementById('keyMetricsExpanded');
         const button = this;
 
         if (expanded.style.display === 'none' || expanded.style.display === '') {
             expanded.style.display = 'flex';
-            button.textContent = '📊 Market Data ▲';
+            button.textContent = '📊 Key Metrics ▲';
             button.classList.add('expanded');
-            sessionStorage.setItem('marketDataExpanded', 'true');
+            sessionStorage.setItem('keyMetricsExpanded', 'true');
         } else {
             expanded.style.display = 'none';
-            button.textContent = '📊 Market Data ▼';
+            button.textContent = '📊 Key Metrics ▼';
             button.classList.remove('expanded');
-            sessionStorage.setItem('marketDataExpanded', 'false');
+            sessionStorage.setItem('keyMetricsExpanded', 'false');
         }
     });
 
-    // Restore market data expanded state on load
-    if (sessionStorage.getItem('marketDataExpanded') === 'true') {
-        const expanded = document.getElementById('marketDataExpanded');
-        const button = document.getElementById('marketDataToggle');
+    // Restore key metrics expanded state on load
+    if (sessionStorage.getItem('keyMetricsExpanded') === 'true') {
+        const expanded = document.getElementById('keyMetricsExpanded');
+        const button = document.getElementById('keyMetricsToggle');
         if (expanded && button) {
             expanded.style.display = 'flex';
-            button.textContent = '📊 Market Data ▲';
+            button.textContent = '📊 Key Metrics ▲';
             button.classList.add('expanded');
         }
     }
