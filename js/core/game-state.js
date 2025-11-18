@@ -119,6 +119,11 @@ const GAME_STATE = {
         this.physicalPositions.push(position);
         this.recordPurchase(supplier, tonnage, isLTA);
 
+        // Dispatch event for maritime map widget
+        window.dispatchEvent(new CustomEvent('position-created', {
+            detail: { position }
+        }));
+
         return position;
     },
 
@@ -136,6 +141,11 @@ const GAME_STATE = {
                 settlementTurn: position.purchaseTurn + 2 // Settles 2 turns after purchase
             };
             position.status = 'SOLD_PENDING_SETTLEMENT';
+
+            // Dispatch event for position status change
+            window.dispatchEvent(new CustomEvent('position-status-changed', {
+                detail: { position, oldStatus: 'IN_TRANSIT', newStatus: 'SOLD_PENDING_SETTLEMENT' }
+            }));
         }
 
         this.recordSale(region, tonnage);
@@ -209,6 +219,11 @@ const GAME_STATE = {
         this.physicalPositions.forEach(pos => {
             if (pos.status === 'IN_TRANSIT' && turn >= pos.arrivalTurn) {
                 pos.status = 'ARRIVED';
+
+                // Dispatch event for position status change
+                window.dispatchEvent(new CustomEvent('position-status-changed', {
+                    detail: { position: pos, oldStatus: 'IN_TRANSIT', newStatus: 'ARRIVED' }
+                }));
             }
         });
     },

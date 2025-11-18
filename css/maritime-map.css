@@ -1,0 +1,318 @@
+/* Maritime Map Styles */
+/* Styles for the integrated Mapbox maritime map widget */
+
+/* Map container */
+.maritime-map-container {
+    width: 100%;
+    height: 350px;
+    position: relative;
+    background: var(--bg-secondary, #1a1d2e);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+/* Map canvas */
+#maritimeMap {
+    width: 100%;
+    height: 100%;
+}
+
+/* Loading state */
+.maritime-map-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary, #1a1d2e);
+    color: var(--text-primary, #e2e8f0);
+    z-index: 10;
+}
+
+.maritime-map-loading.hidden {
+    display: none;
+}
+
+.maritime-map-loading-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.maritime-map-loading-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+/* Error state */
+.maritime-map-error {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary, #1a1d2e);
+    color: var(--text-primary, #e2e8f0);
+    z-index: 10;
+    padding: 20px;
+    text-align: center;
+}
+
+.maritime-map-error.hidden {
+    display: none;
+}
+
+.maritime-map-error-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.maritime-map-error-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #ef4444;
+}
+
+.maritime-map-error-message {
+    font-size: 12px;
+    color: var(--text-secondary, #94a3b8);
+    max-width: 400px;
+}
+
+/* Map header with stats */
+.maritime-map-header {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 5;
+    background: rgba(26, 29, 46, 0.9);
+    backdrop-filter: blur(8px);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.maritime-map-header-icon {
+    font-size: 16px;
+}
+
+.maritime-map-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.maritime-map-header-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.maritime-map-header-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4A9EFF;
+}
+
+/* Map legend */
+.maritime-map-legend {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 5;
+    background: rgba(26, 29, 46, 0.9);
+    backdrop-filter: blur(8px);
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    color: var(--text-primary, #e2e8f0);
+}
+
+.maritime-map-legend-title {
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.maritime-map-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.maritime-map-legend-item:last-child {
+    margin-bottom: 0;
+}
+
+.maritime-map-legend-icon {
+    font-size: 14px;
+}
+
+.maritime-map-legend-line {
+    width: 20px;
+    height: 2px;
+    background: #4A9EFF;
+    opacity: 0.6;
+    border-top: 2px dashed #4A9EFF;
+}
+
+.maritime-map-legend-label {
+    font-size: 11px;
+    color: var(--text-primary, #e2e8f0);
+}
+
+/* Empty state (no active shipments) */
+.maritime-map-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.maritime-map-empty.hidden {
+    display: none;
+}
+
+.maritime-map-empty-icon {
+    font-size: 48px;
+    opacity: 0.2;
+}
+
+.maritime-map-empty-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    opacity: 0.5;
+}
+
+/* Mapbox controls override */
+.maritime-map-container .mapboxgl-ctrl-bottom-left,
+.maritime-map-container .mapboxgl-ctrl-bottom-right {
+    display: none;
+}
+
+.maritime-map-container .mapboxgl-ctrl-top-right {
+    top: 12px;
+    right: 12px;
+}
+
+.maritime-map-container .mapboxgl-ctrl-top-left {
+    top: 12px;
+    left: 12px;
+}
+
+/* Compact navigation controls */
+.maritime-map-container .mapboxgl-ctrl-group {
+    background: rgba(26, 29, 46, 0.9);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.maritime-map-container .mapboxgl-ctrl-group button {
+    background: transparent;
+    border: none;
+}
+
+.maritime-map-container .mapboxgl-ctrl-group button:hover {
+    background: rgba(74, 158, 255, 0.2);
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .maritime-map-container {
+    background: #f1f5f9;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .maritime-map-loading,
+[data-theme="light"] .maritime-map-error {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+[data-theme="light"] .maritime-map-header,
+[data-theme="light"] .maritime-map-legend {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .maritime-map-loading-text,
+[data-theme="light"] .maritime-map-empty-text {
+    color: #64748b;
+}
+
+[data-theme="light"] .maritime-map-header-title {
+    color: #64748b;
+}
+
+[data-theme="light"] .maritime-map-legend-title {
+    color: #64748b;
+}
+
+[data-theme="light"] .maritime-map-legend-label {
+    color: #1e293b;
+}
+
+[data-theme="light"] .maritime-map-container .mapboxgl-ctrl-group {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .maritime-map-container {
+        height: 250px;
+    }
+
+    .maritime-map-header,
+    .maritime-map-legend {
+        font-size: 10px;
+        padding: 6px 10px;
+    }
+
+    .maritime-map-header-value {
+        font-size: 12px;
+    }
+}

@@ -49,6 +49,15 @@ function advanceTurn() {
     FuturesWidget.render();
     FuturesWidget.renderGraph();  // Re-render graph with new term structure
 
+    // Dispatch turn-advanced event for maritime map and other widgets
+    window.dispatchEvent(new CustomEvent('turn-advanced', {
+        detail: {
+            newTurn: GAME_STATE.currentTurn,
+            newMonth: GAME_STATE.currentMonth,
+            settledPositions
+        }
+    }));
+
     alert(`✅ Advanced to ${GAME_STATE.currentMonth}!\n\nInterest Charged: $${Math.round(interestCharged).toLocaleString('en-US')}\nMonthly limits reset.\n${GAME_STATE.physicalPositions.filter(p => p.status === 'ARRIVED').length} position(s) arrived.`);
 }
 
