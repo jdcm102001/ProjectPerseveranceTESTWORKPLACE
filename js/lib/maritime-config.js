@@ -12,7 +12,7 @@ export const MAPBOX_CONFIG = {
 
 // Animation configuration
 export const ANIMATION_CONFIG = {
-    duration: 30000,  // 30 seconds per user requirement
+    duration: 60000,  // 60 seconds (1 minute) per user requirement
     shipIconSize: 0.6,
     shipIconRotationOffset: 90
 };
@@ -126,7 +126,7 @@ export const PORT_LOCATIONS = {
         coordinates: [103.8198, 1.3521],
         country: 'Singapore',
         displayName: 'Singapore',
-        category: 'HUB'
+        category: 'PARITY'
     },
     rotterdam: {
         coordinates: [4.4777, 51.9244],
@@ -156,7 +156,7 @@ export const PORT_LOCATIONS = {
         coordinates: [-90.0715, 29.9511],
         country: 'USA',
         displayName: 'New Orleans',
-        category: 'PARITY'
+        category: 'HUB'
     },
     houston: {
         coordinates: [-95.3698, 29.7604],
