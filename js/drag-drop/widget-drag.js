@@ -219,8 +219,7 @@ async function createWidgetContent(widgetName, isActive) {
                         <tr>
                             <th>SELLER</th>
                             <th>AVAILABLE</th>
-                            <th>PRICING BASIS</th>
-                            <th>PREMIUM</th>
+                            <th>PRICING & PREMIUM</th>
                             <th>ACTIONS</th>
                         </tr>
                     </thead>
@@ -232,8 +231,8 @@ async function createWidgetContent(widgetName, isActive) {
                     <thead>
                         <tr>
                             <th>BUYER</th>
-                            <th>DESTINATION</th>
-                            <th>PRICING</th>
+                            <th>DEMAND</th>
+                            <th>PRICING & PREMIUM</th>
                             <th>ACTIONS</th>
                         </tr>
                     </thead>
