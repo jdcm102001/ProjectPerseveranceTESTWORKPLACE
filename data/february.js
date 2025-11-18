@@ -8,13 +8,15 @@ window.FEBRUARY_DATA = {
         "MAX_OPTIONAL_SPOT_MT": 15,
         "TOTAL_MAX_AVAILABLE_MT": 20,
         "ORIGIN_PORT": "Callao",
-        "SUPPLIER_PREMIUM_USD": 15
+        "SUPPLIER_PREMIUM_USD": 15,
+        "IS_PRIMARY": false
       },
       "CHILEAN": {
         "MIN_AVAILABLE_MT": 20,
         "MAX_AVAILABLE_MT": 80,
         "ORIGIN_PORT": "Antofagasta",
-        "SUPPLIER_PREMIUM_USD": 0
+        "SUPPLIER_PREMIUM_USD": 0,
+        "IS_PRIMARY": true
       },
       "TOTAL_MARKET_DEPTH_MT": 95
     },
@@ -303,16 +305,18 @@ window.FEBRUARY_DATA = {
         "PORT_OF_DISCHARGE": "New Orleans, LA",
         "REFERENCE_EXCHANGE": "COMEX",
         "PORT_TYPE": "Hub",
-        "REGIONAL_PREMIUM_USD": 50
+        "REGIONAL_PREMIUM_USD": 50,
+        "IS_PRIMARY": false
       },
       {
         "REGION": "ASIA",
-        "MIN_QUANTITY_MT": 45,
-        "MAX_QUANTITY_MT": 80,
-        "PORT_OF_DISCHARGE": "Busan",
+        "MIN_QUANTITY_MT": 40,
+        "MAX_QUANTITY_MT": 85,
+        "PORT_OF_DISCHARGE": "Shanghai",
         "REFERENCE_EXCHANGE": "LME",
-        "PORT_TYPE": "Parity",
-        "REGIONAL_PREMIUM_USD": 120
+        "PORT_TYPE": "Hub",
+        "REGIONAL_PREMIUM_USD": 120,
+        "IS_PRIMARY": true
       },
       {
         "REGION": "EUROPE",
@@ -321,7 +325,8 @@ window.FEBRUARY_DATA = {
         "PORT_OF_DISCHARGE": "Rotterdam",
         "REFERENCE_EXCHANGE": "LME",
         "PORT_TYPE": "Hub",
-        "REGIONAL_PREMIUM_USD": 90
+        "REGIONAL_PREMIUM_USD": 90,
+        "IS_PRIMARY": false
       }
     ]
   }

@@ -32,6 +32,7 @@
 <body>
     <!-- Fixed Header Bar -->
     <div class="header-bar">
+        <!-- Always Visible - Core Metrics -->
         <div class="header-metric">
             <div class="header-metric-label">Month</div>
             <div class="header-metric-value" id="headerMonth">JAN (1/12)</div>
@@ -41,38 +42,6 @@
             <div class="header-metric-value" id="headerFunds">$200,000</div>
         </div>
         <div class="header-metric">
-            <div class="header-metric-label">LOC Used</div>
-            <div class="header-metric-value" id="headerLOC">$0 / $200K</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">Buying Power</div>
-            <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">LOC Interest (Next)</div>
-            <div class="header-metric-value" id="headerLOCInterest">$0</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">LME (0)</div>
-            <div class="header-metric-value" id="headerLMESpot">$8,960</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">LME (3M)</div>
-            <div class="header-metric-value" id="headerLME3M">$9,210</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">COMEX (0)</div>
-            <div class="header-metric-value" id="headerCOMEXSpot">$9,344</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">COMEX (3M)</div>
-            <div class="header-metric-value" id="headerCOMEX3M">$9,594</div>
-        </div>
-        <div class="header-metric">
-            <div class="header-metric-label">Physical MT</div>
-            <div class="header-metric-value" id="headerPhysicalMT">0</div>
-        </div>
-        <div class="header-metric">
             <div class="header-metric-label">Margin Posted</div>
             <div class="header-metric-value" id="headerMarginPosted">$0 / $100K</div>
         </div>
@@ -80,6 +49,49 @@
             <div class="header-metric-label">Total P&L</div>
             <div class="header-metric-value" id="headerPL">$0</div>
         </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Price Exposure</div>
+            <div class="header-metric-value" id="headerExposure">🟢 $0 (0%)</div>
+        </div>
+
+        <!-- Expandable Market Data Section -->
+        <div id="marketDataExpanded" style="display: none; margin-left: 20px; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1);">
+            <div class="header-metric">
+                <div class="header-metric-label">LOC Used</div>
+                <div class="header-metric-value" id="headerLOC">$0 / $200K</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">Buying Power</div>
+                <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">LOC Interest (Next)</div>
+                <div class="header-metric-value" id="headerLOCInterest">$0</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">LME (0)</div>
+                <div class="header-metric-value" id="headerLMESpot">$8,960</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">LME (3M)</div>
+                <div class="header-metric-value" id="headerLME3M">$9,210</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">COMEX (0)</div>
+                <div class="header-metric-value" id="headerCOMEXSpot">$9,344</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">COMEX (3M)</div>
+                <div class="header-metric-value" id="headerCOMEX3M">$9,594</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">Physical MT</div>
+                <div class="header-metric-value" id="headerPhysicalMT">0</div>
+            </div>
+        </div>
+
+        <!-- Toggle Button and Controls -->
+        <button class="market-data-toggle" id="marketDataToggle" title="Show/Hide Market Data">📊 Market Data ▼</button>
         <button class="next-turn-btn" id="nextTurnBtn">NEXT TURN ▶</button>
         <button class="theme-toggle" id="themeToggleBtn">☀️ Light Mode</button>
     </div>
@@ -158,7 +170,7 @@
         <div class="widget-content" data-widget="Markets">
             <div class="markets-widget-content">
                 <!-- SUPPLIERS TABLE -->
-                <div class="section-title">🔵 Suppliers - Buy Copper</div>
+                <div class="section-title">🔵 This Month's Supplier</div>
                 <table class="markets-table">
                     <thead>
                         <tr>
@@ -173,16 +185,13 @@
                 </table>
 
                 <!-- BUYERS TABLE -->
-                <div class="section-title">🟢 Buyers - Sell Copper</div>
+                <div class="section-title">🟢 This Month's Buyer</div>
                 <table class="markets-table">
                     <thead>
                         <tr>
                             <th>BUYER</th>
-                            <th>DEMAND</th>
-                            <th>PORT</th>
-                            <th>EXCHANGE</th>
-                            <th>QP</th>
-                            <th>PREMIUM</th>
+                            <th>DESTINATION</th>
+                            <th>PRICING</th>
                             <th>ACTIONS</th>
                         </tr>
                     </thead>

@@ -197,13 +197,23 @@ function createTab(panelId, widgetName, isActive) {
 
 async function createWidgetContent(widgetName, isActive) {
     const content = document.createElement('div');
-    content.className = 'widget-content' + (isActive ? ' active' : '');
+
+    // Apply elevation level based on widget type
+    let elevationClass = 'widget-elevation-3'; // Default: Supporting
+
+    if (widgetName === 'Positions') {
+        elevationClass = 'widget-elevation-1'; // Critical - always visible
+    } else if (widgetName === 'Markets' || widgetName === 'Futures') {
+        elevationClass = 'widget-elevation-2'; // Important - contextual (will be dynamically updated)
+    }
+
+    content.className = 'widget-content' + (isActive ? ' active' : '') + ' ' + elevationClass;
     content.dataset.widget = widgetName;
 
     if (widgetName === 'Markets') {
         content.innerHTML = `
             <div class="markets-widget-content">
-                <div class="section-title">🔵 Suppliers - Buy Copper</div>
+                <div class="section-title">🔵 This Month's Supplier</div>
                 <table class="markets-table" id="suppliersTable">
                     <thead>
                         <tr>
@@ -217,16 +227,13 @@ async function createWidgetContent(widgetName, isActive) {
                     <tbody id="suppliersTableBody"></tbody>
                 </table>
 
-                <div class="section-title">🟢 Buyers - Sell Copper</div>
+                <div class="section-title">🟢 This Month's Buyer</div>
                 <table class="markets-table" id="buyersTable">
                     <thead>
                         <tr>
                             <th>BUYER</th>
-                            <th>DEMAND</th>
-                            <th>PORT</th>
-                            <th>EXCHANGE</th>
-                            <th>QP</th>
-                            <th>PREMIUM</th>
+                            <th>DESTINATION</th>
+                            <th>PRICING</th>
                             <th>ACTIONS</th>
                         </tr>
                     </thead>
@@ -337,6 +344,50 @@ async function createWidgetContent(widgetName, isActive) {
     return content;
 }
 
+/* ==========================================
+   DYNAMIC ELEVATION MANAGEMENT
+   ========================================== */
+
+/**
+ * Updates widget elevation levels based on current game state
+ * Called after state changes (trades, turn advancement, etc.)
+ */
+function updateWidgetElevation() {
+    // Get GAME_STATE from window (already exposed globally)
+    const state = window.GAME_STATE?.state;
+    if (!state) return;
+
+    // Calculate buying power
+    const buyingPower = state.practiceFunds + (state.locLimit - state.locUsed);
+
+    // Calculate price exposure
+    const exposureData = window.GAME_STATE?.calculatePriceExposure?.();
+    const exposurePercentage = exposureData?.exposurePercentage || 0;
+
+    // Find Markets widget and update elevation
+    const marketsWidget = document.querySelector('[data-widget="Markets"].widget-content');
+    if (marketsWidget) {
+        marketsWidget.classList.remove('widget-elevation-2', 'widget-elevation-3');
+        if (buyingPower > 10000) {
+            marketsWidget.classList.add('widget-elevation-2'); // Important - you can trade
+        } else {
+            marketsWidget.classList.add('widget-elevation-3'); // Supporting - limited capital
+        }
+    }
+
+    // Find Futures widget and update elevation
+    const futuresWidget = document.querySelector('[data-widget="Futures"].widget-content');
+    if (futuresWidget) {
+        const hasOpenFutures = state.futuresPositions?.some(p => p.status === 'OPEN') || false;
+        futuresWidget.classList.remove('widget-elevation-2', 'widget-elevation-3');
+        if (hasOpenFutures || exposurePercentage > 20) {
+            futuresWidget.classList.add('widget-elevation-2'); // Important - active hedging needed
+        } else {
+            futuresWidget.classList.add('widget-elevation-3'); // Supporting - no urgent need
+        }
+    }
+}
+
 // Export functions
 export {
     handleWidgetDragStart,
@@ -349,5 +400,6 @@ export {
     updateDividersForDropZone,
     addWidgetToPanel,
     createTab,
-    createWidgetContent
+    createWidgetContent,
+    updateWidgetElevation
 };

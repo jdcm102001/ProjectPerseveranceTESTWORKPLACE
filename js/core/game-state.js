@@ -268,6 +268,25 @@ const GAME_STATE = {
         }
 
         document.getElementById('headerPL').textContent = `$${Math.round(this.totalPL).toLocaleString('en-US')}`;
+
+        // Calculate and display price exposure
+        const exposureData = this.calculatePriceExposure();
+        const exposureEl = document.getElementById('headerExposure');
+        if (exposureEl) {
+            const exposureText = `${exposureData.riskIcon} $${Math.round(exposureData.totalExposure).toLocaleString('en-US')} (${exposureData.exposurePercentage.toFixed(1)}%)`;
+            exposureEl.textContent = exposureText;
+            exposureEl.style.color = exposureData.riskColor;
+        }
+
+        // Update widget elevation based on current state
+        if (typeof window.updateWidgetElevation === 'function') {
+            window.updateWidgetElevation();
+        }
+
+        // Check and show workflow hints
+        if (typeof window.WorkflowHints !== 'undefined') {
+            window.WorkflowHints.checkAndShowHints();
+        }
     },
 
     // ==========================================
@@ -474,6 +493,146 @@ const GAME_STATE = {
         };
     },
 
+    /**
+     * Calculate price exposure for all open physical positions
+     * Detects hedges via futures and calculates unhedged risk
+     * Returns risk level: LOW, MODERATE, HIGH, EXTREME
+     */
+    calculatePriceExposure() {
+        // If no physical positions, no exposure
+        if (this.physicalPositions.length === 0 || !this.physicalPositions.some(p => p.status === 'OPEN')) {
+            return {
+                totalExposure: 0,
+                exposurePercentage: 0,
+                riskLevel: 'LOW',
+                riskColor: '#10b981',
+                riskIcon: '🟢',
+                positionBreakdown: [],
+                hasHighRisk: false
+            };
+        }
+
+        const positionBreakdown = [];
+        let totalUnhedgedExposure = 0;
+
+        this.physicalPositions.forEach(position => {
+            // Only analyze OPEN physical positions
+            if (position.status !== 'OPEN') return;
+
+            // Get current market price for this position
+            const monthData = this.currentMonthData;
+            const pricing = position.exchange === 'LME' ? monthData.PRICING.LME : monthData.PRICING.COMEX;
+            const currentPrice = pricing.SPOT_AVG;  // Use spot price as mark-to-market
+
+            // Calculate total position value
+            const positionValue = position.tonnage * currentPrice;
+
+            // Check if position is hedged by futures
+            const hedgeInfo = this.checkPositionHedge(position);
+
+            // Calculate unhedged exposure
+            const unhedgedTonnage = position.tonnage * (1 - hedgeInfo.coveragePercentage);
+            const unhedgedExposure = unhedgedTonnage * currentPrice;
+
+            totalUnhedgedExposure += unhedgedExposure;
+
+            positionBreakdown.push({
+                positionId: position.id,
+                supplier: position.supplier,
+                tonnage: position.tonnage,
+                exchange: position.exchange,
+                currentPrice: currentPrice,
+                positionValue: positionValue,
+                hedgeStatus: hedgeInfo.status,
+                hedgeCoverage: hedgeInfo.coveragePercentage,
+                unhedgedExposure: unhedgedExposure
+            });
+        });
+
+        // Calculate exposure as percentage of practice funds
+        const exposurePercentage = this.practiceFunds > 0 ? (totalUnhedgedExposure / this.practiceFunds) * 100 : 0;
+
+        // Determine risk level
+        let riskLevel, riskColor, riskIcon;
+        if (exposurePercentage === 0) {
+            riskLevel = 'LOW';
+            riskColor = '#10b981';
+            riskIcon = '🟢';
+        } else if (exposurePercentage < 30) {
+            riskLevel = 'MODERATE';
+            riskColor = '#fbbf24';
+            riskIcon = '🟡';
+        } else if (exposurePercentage < 50) {
+            riskLevel = 'HIGH';
+            riskColor = '#ef4444';
+            riskIcon = '🔴';
+        } else {
+            riskLevel = 'EXTREME';
+            riskColor = '#dc2626';
+            riskIcon = '🔴';
+        }
+
+        return {
+            totalExposure: totalUnhedgedExposure,
+            exposurePercentage: exposurePercentage,
+            riskLevel: riskLevel,
+            riskColor: riskColor,
+            riskIcon: riskIcon,
+            positionBreakdown: positionBreakdown,
+            hasHighRisk: exposurePercentage >= 30
+        };
+    },
+
+    /**
+     * Check if a physical position is hedged by futures positions
+     * Returns hedge status and coverage percentage
+     */
+    checkPositionHedge(physicalPosition) {
+        // Physical positions are "LONG" (we own copper), so we need SHORT futures to hedge
+        const requiredDirection = 'SHORT';
+        const requiredExchange = physicalPosition.exchange;
+
+        // Find matching futures positions
+        const matchingFutures = this.futuresPositions.filter(fp =>
+            fp.exchange === requiredExchange &&
+            fp.direction === requiredDirection
+        );
+
+        if (matchingFutures.length === 0) {
+            return {
+                status: 'NONE',
+                coveragePercentage: 0,
+                description: '🔴 UNHEDGED'
+            };
+        }
+
+        // Calculate total hedged tonnage
+        const totalHedgedTonnage = matchingFutures.reduce((sum, fp) => sum + fp.tonnage, 0);
+
+        // Calculate coverage percentage (allow tolerance)
+        const coveragePercentage = Math.min(totalHedgedTonnage / physicalPosition.tonnage, 1);
+
+        // Determine hedge status
+        let status, description;
+        if (coveragePercentage >= 0.8) {  // 80%+ coverage
+            status = 'FULL';
+            description = '🟢 FULLY HEDGED';
+        } else if (coveragePercentage >= 0.3) {  // 30-80% coverage
+            status = 'PARTIAL';
+            description = `🟡 PARTIAL (${Math.round(coveragePercentage * 100)}%)`;
+        } else {  // <30% coverage
+            status = 'NONE';
+            description = '🔴 UNHEDGED';
+        }
+
+        return {
+            status: status,
+            coveragePercentage: coveragePercentage,
+            description: description,
+            matchingFutures: matchingFutures.length
+        };
+    },
+
     closeFuturesPosition(positionId) {
         const position = this.futuresPositions.find(p => p.id === positionId);
         if (!position) {
@@ -520,7 +679,6 @@ const GAME_STATE = {
 
     updateFuturesPrices() {
         const monthData = this.currentMonthData;
-        let marginCallsTriggered = [];
 
         this.futuresPositions.forEach(position => {
             // Get current price
@@ -542,52 +700,13 @@ const GAME_STATE = {
             const priceDiff = currentPrice - position.entryPrice;
             const plMultiplier = position.direction === 'LONG' ? 1 : -1;
             position.unrealizedPL = priceDiff * spec.priceMultiplier * position.numContracts * plMultiplier;
-
-            // Update margin balance
-            position.marginBalance = position.initialMargin + position.unrealizedPL;
-
-            // Check for margin call
-            if (position.marginBalance < position.initialMargin) {
-                const topUp = position.initialMargin - position.marginBalance;
-
-                if (this.practiceFunds >= topUp) {
-                    // Can top up
-                    this.practiceFunds -= topUp;
-                    position.marginBalance = position.initialMargin;
-                    position.initialMargin += topUp;
-                    this.futuresMarginPosted += topUp;
-
-                    marginCallsTriggered.push({
-                        position: position,
-                        topUp: topUp,
-                        forceClosed: false
-                    });
-                } else {
-                    // Force liquidation
-                    this.forceLiquidatePosition(position);
-                    marginCallsTriggered.push({
-                        position: position,
-                        topUp: topUp,
-                        forceClosed: true
-                    });
-                }
-            }
         });
 
-        // Show margin call alerts
-        if (marginCallsTriggered.length > 0) {
-            let message = '⚠️ MARGIN CALL ALERT\n\n';
-            marginCallsTriggered.forEach(mc => {
-                if (mc.forceClosed) {
-                    message += `💀 FORCE LIQUIDATED: ${mc.position.exchange} ${mc.position.contract} ${mc.position.direction}\n`;
-                    message += `   Insufficient funds for $${Math.round(mc.topUp).toLocaleString('en-US')} top-up\n\n`;
-                } else {
-                    message += `✅ TOPPED UP: ${mc.position.exchange} ${mc.position.contract} ${mc.position.direction}\n`;
-                    message += `   Added: $${Math.round(mc.topUp).toLocaleString('en-US')}\n\n`;
-                }
-            });
-            alert(message);
-        }
+        // Recalculate total margin with netting after price updates
+        const marginCalc = this.calculateMarginWithNetting();
+        this.futuresMarginPosted = marginCalc.totalMargin;
+
+        this.updateHeader();
 
         // Check for expiries
         this.checkFuturesExpiry();
@@ -599,23 +718,19 @@ const GAME_STATE = {
 
         const spec = this.FUTURES_SPECS[position.exchange];
         const closingFees = spec.closeFee * position.numContracts;
-        const finalPL = position.marginBalance - position.initialMargin;
 
-        // Return remaining margin (could be negative)
-        if (position.marginBalance > 0) {
-            this.practiceFunds += position.marginBalance;
-        }
-
-        // Deduct closing fees
-        this.practiceFunds -= closingFees;
-
-        // Update totals
-        this.totalPL += finalPL;
-        this.totalFuturesPL += finalPL;
-        this.futuresMarginPosted -= position.initialMargin;
-
-        // Remove position
+        // Remove position first
         this.futuresPositions.splice(index, 1);
+
+        // Recalculate margin with netting
+        const marginCalc = this.calculateMarginWithNetting();
+        this.futuresMarginPosted = marginCalc.totalMargin;
+
+        // Settle P&L
+        this.practiceFunds += position.unrealizedPL;
+        this.practiceFunds -= closingFees;
+        this.totalPL += position.unrealizedPL;
+        this.totalFuturesPL += position.unrealizedPL;
 
         this.updateHeader();
     },
@@ -626,6 +741,8 @@ const GAME_STATE = {
         if (expiringPositions.length === 0) return;
 
         let expiryMessage = '📅 CONTRACT EXPIRY\n\n';
+        let totalPL = 0;
+        let totalFees = 0;
 
         expiringPositions.forEach(position => {
             const index = this.futuresPositions.indexOf(position);
@@ -633,27 +750,32 @@ const GAME_STATE = {
 
             const spec = this.FUTURES_SPECS[position.exchange];
             const closingFees = spec.closeFee * position.numContracts;
-            const finalPL = position.marginBalance - position.initialMargin;
 
-            // Return margin balance
-            this.practiceFunds += position.marginBalance;
-
-            // Deduct closing fees
+            // Settle P&L
+            this.practiceFunds += position.unrealizedPL;
             this.practiceFunds -= closingFees;
 
             // Update totals
-            this.totalPL += finalPL;
-            this.totalFuturesPL += finalPL;
-            this.futuresMarginPosted -= position.initialMargin;
+            this.totalPL += position.unrealizedPL;
+            this.totalFuturesPL += position.unrealizedPL;
+            totalPL += position.unrealizedPL;
+            totalFees += closingFees;
 
             // Remove position
             this.futuresPositions.splice(index, 1);
 
             expiryMessage += `${position.exchange} ${position.contract} ${position.direction}\n`;
-            expiryMessage += `Final P&L: ${finalPL >= 0 ? '+' : ''}$${Math.round(finalPL).toLocaleString('en-US')}\n`;
-            expiryMessage += `Margin returned: $${Math.round(position.marginBalance).toLocaleString('en-US')}\n`;
+            expiryMessage += `Final P&L: ${position.unrealizedPL >= 0 ? '+' : ''}$${Math.round(position.unrealizedPL).toLocaleString('en-US')}\n`;
             expiryMessage += `Fees: $${closingFees.toLocaleString('en-US')}\n\n`;
         });
+
+        // Recalculate margin after removing expired positions
+        const marginCalc = this.calculateMarginWithNetting();
+        this.futuresMarginPosted = marginCalc.totalMargin;
+
+        expiryMessage += `Total P&L: ${totalPL >= 0 ? '+' : ''}$${Math.round(totalPL).toLocaleString('en-US')}\n`;
+        expiryMessage += `Total Fees: $${Math.round(totalFees).toLocaleString('en-US')}\n`;
+        expiryMessage += `Net Impact: ${(totalPL - totalFees) >= 0 ? '+' : ''}$${Math.round(totalPL - totalFees).toLocaleString('en-US')}`;
 
         this.updateHeader();
         alert(expiryMessage);

@@ -63,6 +63,30 @@ body {
     transform: translateY(-1px);
 }
 
+/* Market Data Toggle Button */
+.market-data-toggle {
+    background: rgba(59, 130, 246, 0.15);
+    border: 2px solid #3b82f6;
+    color: #3b82f6;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    transition: all 0.3s;
+    margin-left: 20px;
+}
+
+.market-data-toggle:hover {
+    background: rgba(59, 130, 246, 0.25);
+    transform: translateY(-1px);
+}
+
+.market-data-toggle.expanded {
+    background: rgba(59, 130, 246, 0.3);
+}
+
 .next-turn-btn {
     margin-left: auto;
     background: rgba(16, 185, 129, 0.2);
@@ -175,4 +199,35 @@ body {
 
 .widget-item:active {
     opacity: 0.6;
+}
+
+/* ===== WIDGET ELEVATION LEVELS ===== */
+
+/* Level 1: Critical - Always Visible (e.g., Positions) */
+.widget-elevation-1 {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(59, 130, 246, 0.4) !important;
+    position: relative;
+    z-index: 3;
+}
+
+/* Level 2: Important - Contextual (e.g., Markets when you have buying power) */
+.widget-elevation-2 {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    position: relative;
+    z-index: 2;
+}
+
+/* Level 3: Supporting - Reference (default for other widgets) */
+.widget-elevation-3 {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+}
+
+/* Smooth transition between elevation levels */
+.widget-content {
+    transition: box-shadow 0.3s ease, border 0.3s ease, opacity 0.3s ease;
 }
