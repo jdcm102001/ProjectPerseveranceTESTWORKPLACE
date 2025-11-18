@@ -251,6 +251,43 @@ async function createWidgetContent(widgetName, isActive) {
     if (widgetName === 'Positions') {
         content.innerHTML = `
             <div class="positions-widget-content" style="padding: 15px;">
+                <!-- Maritime Map Section -->
+                <div class="maritime-map-container">
+                    <div id="maritimeMap"></div>
+                    <div class="maritime-map-loading">
+                        <div class="maritime-map-loading-icon">🚢</div>
+                        <div class="maritime-map-loading-text">Loading maritime map...</div>
+                    </div>
+                    <div class="maritime-map-error hidden">
+                        <div class="maritime-map-error-icon">⚠️</div>
+                        <div class="maritime-map-error-title">Map Error</div>
+                        <div class="maritime-map-error-message">Failed to load maritime map</div>
+                    </div>
+                    <div class="maritime-map-header">
+                        <div class="maritime-map-header-icon">🚢</div>
+                        <div class="maritime-map-header-text">
+                            <div class="maritime-map-header-title">Active Shipments</div>
+                            <div class="maritime-map-header-value" id="activeShipmentsCount">0</div>
+                        </div>
+                    </div>
+                    <div class="maritime-map-legend">
+                        <div class="maritime-map-legend-title">Legend</div>
+                        <div class="maritime-map-legend-item">
+                            <div class="maritime-map-legend-icon">🚢</div>
+                            <div class="maritime-map-legend-label">Active Shipment</div>
+                        </div>
+                        <div class="maritime-map-legend-item">
+                            <div class="maritime-map-legend-line"></div>
+                            <div class="maritime-map-legend-label">Route Path</div>
+                        </div>
+                    </div>
+                    <div class="maritime-map-empty">
+                        <div class="maritime-map-empty-icon">🌊</div>
+                        <div class="maritime-map-empty-text">No active shipments</div>
+                    </div>
+                </div>
+
+                <!-- Physical Positions Table -->
                 <div class="section-title">📦 Physical Positions</div>
                 <div id="positionsContainer"></div>
             </div>

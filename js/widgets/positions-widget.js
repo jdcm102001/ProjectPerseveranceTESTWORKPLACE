@@ -1,6 +1,7 @@
 import { GAME_STATE } from '../core/game-state.js';
 import { showSaleDetails } from '../core/game-controls.js';
 import { refreshCollapsibles } from '../core/collapsible.js';
+import { MaritimeMapWidget } from './maritime-map-widget.js';
 
 const PositionsWidget = {
     positions: [],
@@ -8,6 +9,11 @@ const PositionsWidget = {
     init() {
         this.loadPositionsFromGameState();
         this.render();
+
+        // Initialize maritime map widget
+        setTimeout(() => {
+            MaritimeMapWidget.init();
+        }, 300);
     },
 
     loadPositionsFromGameState() {
