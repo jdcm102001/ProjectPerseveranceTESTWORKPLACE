@@ -161,7 +161,9 @@ class MapboxManager {
      * @returns {HTMLCanvasElement}
      */
     createCircleMarker(color, enhanced = false) {
-        const size = 24;
+        // Use larger canvas size for enhanced markers to accommodate shadow blur
+        // Shadow blur of 8px needs at least 10px padding on each side
+        const size = enhanced ? 44 : 24;
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
@@ -173,7 +175,7 @@ class MapboxManager {
 
         // Add glow effect for enhanced markers (hub ports)
         if (enhanced) {
-            // Outer glow
+            // Outer glow - canvas is now large enough to contain the full blur
             ctx.shadowBlur = 8;
             ctx.shadowColor = color;
             ctx.shadowOffsetX = 0;
@@ -777,6 +779,12 @@ class MapboxManager {
             this.removeShipmentLayers(state);
         });
         this.activeShipments.clear();
+
+        // Remove all port markers
+        this.portMarkers.forEach((marker) => {
+            marker.remove();
+        });
+        this.portMarkers.clear();
 
         // Remove map
         if (this.map) {
