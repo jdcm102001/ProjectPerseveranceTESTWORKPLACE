@@ -41,17 +41,37 @@
 <body>
     <!-- Fixed Header Bar -->
     <div class="header-bar">
-        <!-- Always Visible - Month Only -->
+        <!-- Always Visible - Core Trading Metrics (5 metrics) -->
         <div class="header-metric">
             <div class="header-metric-label">Month</div>
             <div class="header-metric-value" id="headerMonth">JAN (1/12)</div>
         </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Practice Funds</div>
+            <div class="header-metric-value" id="headerPracticeFunds">$200,000</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Total P&L</div>
+            <div class="header-metric-value" id="headerTotalPL">$0</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Buying Power</div>
+            <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
+        </div>
+        <div class="header-metric">
+            <div class="header-metric-label">Physical Inventory</div>
+            <div class="header-metric-value" id="headerPhysicalMT">0 MT</div>
+        </div>
 
-        <!-- Expandable Key Metrics Section -->
+        <!-- Expandable Key Metrics Section (5 secondary metrics) -->
         <div id="keyMetricsExpanded" style="display: none; margin-left: auto; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1); gap: 30px;">
             <div class="header-metric">
-                <div class="header-metric-label">Buying Power</div>
-                <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
+                <div class="header-metric-label">Margin Posted</div>
+                <div class="header-metric-value" id="headerMarginPosted">$0 / $100K</div>
+            </div>
+            <div class="header-metric">
+                <div class="header-metric-label">Price Exposure</div>
+                <div class="header-metric-value" id="headerPriceExposure">$0</div>
             </div>
             <div class="header-metric">
                 <div class="header-metric-label">LOC Used</div>
@@ -63,11 +83,7 @@
             </div>
             <div class="header-metric">
                 <div class="header-metric-label">Interest Rate</div>
-                <div class="header-metric-value" id="headerInterestRate">5.33%</div>
-            </div>
-            <div class="header-metric">
-                <div class="header-metric-label">Physical Inventory</div>
-                <div class="header-metric-value" id="headerPhysicalMT">0 MT</div>
+                <div class="header-metric-value" id="headerInterestRate">0.36%</div>
             </div>
         </div>
 

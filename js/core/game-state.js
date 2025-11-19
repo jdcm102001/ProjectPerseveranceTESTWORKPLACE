@@ -265,24 +265,50 @@ const GAME_STATE = {
     updateHeader() {
         const data = this.currentMonthData;
 
-        // Always visible: Month
+        // ==========================================
+        // ALWAYS VISIBLE - Core Trading Metrics (5)
+        // ==========================================
+
+        // 1. Month
         document.getElementById('headerMonth').textContent = `${this.currentMonth.toUpperCase()} (${this.currentTurn}/12)`;
 
-        // Key Metrics (expandable section)
+        // 2. Practice Funds
+        document.getElementById('headerPracticeFunds').textContent = `$${Math.round(this.practiceFunds).toLocaleString('en-US')}`;
+
+        // 3. Total P&L
+        document.getElementById('headerTotalPL').textContent = `$${Math.round(this.totalPL).toLocaleString('en-US')}`;
+
+        // 4. Buying Power (Practice Funds + Available LOC)
         const buyingPower = this.practiceFunds + (this.locLimit - this.locUsed);
         document.getElementById('headerBuyingPower').textContent = `$${Math.round(buyingPower).toLocaleString('en-US')}`;
-        document.getElementById('headerLOC').textContent = `$${Math.round(this.locUsed).toLocaleString('en-US')} / $${this.locLimit.toLocaleString('en-US')}`;
-        document.getElementById('headerLOCInterest').textContent = `$${Math.round(this.locInterestNextMonth).toLocaleString('en-US')}`;
 
-        // Calculate yearly interest rate from monthly SOFR
-        // SOFR_1M_PERCENT is the 1-month rate, multiply by 12 for yearly
-        const monthlySOFR = data.FIXED_RULES.COST_OF_CARRY.SOFR_1M_PERCENT;
-        const yearlyRate = (monthlySOFR * 12).toFixed(2);
-        document.getElementById('headerInterestRate').textContent = `${yearlyRate}%`;
-
-        // Physical inventory
+        // 5. Physical Inventory
         const totalPhysicalMT = this.physicalPositions.reduce((sum, pos) => sum + pos.tonnage, 0);
         document.getElementById('headerPhysicalMT').textContent = `${totalPhysicalMT.toFixed(1)} MT`;
+
+        // ==========================================
+        // KEY METRICS DROPDOWN - Secondary Metrics (5)
+        // ==========================================
+
+        // 1. Margin Posted (Futures margin used / limit)
+        const marginUsedK = Math.round(this.futuresMarginPosted / 1000);
+        const marginLimitK = Math.round(this.futuresMarginLimit / 1000);
+        document.getElementById('headerMarginPosted').textContent = `$${marginUsedK}K / $${marginLimitK}K`;
+
+        // 2. Price Exposure (Unhedged physical position risk)
+        const priceExposure = this.calculatePriceExposure();
+        document.getElementById('headerPriceExposure').textContent = `$${Math.round(priceExposure.totalExposure).toLocaleString('en-US')}`;
+
+        // 3. LOC Used
+        document.getElementById('headerLOC').textContent = `$${Math.round(this.locUsed).toLocaleString('en-US')} / $${(this.locLimit / 1000).toFixed(0)}K`;
+
+        // 4. LOC Interest (next month)
+        document.getElementById('headerLOCInterest').textContent = `$${Math.round(this.locInterestNextMonth).toLocaleString('en-US')}`;
+
+        // 5. Interest Rate (Monthly rate, not yearly)
+        // SOFR_1M_PERCENT is the monthly SOFR rate (e.g., 0.36%)
+        const monthlySOFR = data.FIXED_RULES.COST_OF_CARRY.SOFR_1M_PERCENT;
+        document.getElementById('headerInterestRate').textContent = `${monthlySOFR.toFixed(2)}%`;
 
         // Update widget elevation based on current state
         if (typeof window.updateWidgetElevation === 'function') {
