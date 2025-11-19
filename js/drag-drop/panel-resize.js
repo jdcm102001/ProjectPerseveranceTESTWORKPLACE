@@ -98,6 +98,9 @@ function applyPanelLayout() {
 
     dividerAB.style.display = (hasA && hasB) ? '' : 'none';
     dividerBC.style.display = (hasB && hasC) ? '' : 'none';
+
+    // Dispatch event for map resizing
+    window.dispatchEvent(new CustomEvent('panel-resized'));
 }
 
 function updateDragPreviewPosition(e) {

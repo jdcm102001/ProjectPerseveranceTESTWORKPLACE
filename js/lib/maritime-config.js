@@ -12,7 +12,7 @@ export const MAPBOX_CONFIG = {
 
 // Animation configuration
 export const ANIMATION_CONFIG = {
-    duration: 60000,  // 60 seconds (1 minute) per user requirement
+    duration: 120000,  // 120 seconds (2 minutes) per user requirement
     shipIconSize: 0.6,
     shipIconRotationOffset: 90
 };
