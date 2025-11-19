@@ -80,6 +80,15 @@ const MaritimeMapWidget = {
             this.updateActiveShipmentsCount();
             this.updateEmptyState();
         });
+
+        // Listen for panel resizing (divider drag)
+        window.addEventListener('panel-resized', () => {
+            // Resize map to fit new panel dimensions
+            if (mapboxManager.map) {
+                mapboxManager.map.resize();
+                console.log('[Maritime Map Widget] Map resized to fit panel');
+            }
+        });
     },
 
     /**

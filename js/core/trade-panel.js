@@ -163,14 +163,30 @@ const TradePanel = {
 
     populateInventory() {
         const select = document.getElementById('sellInventory');
+        const destinationPort = this.currentTrade.dest; // Destination port for this sale
 
         if (GAME_STATE.physicalPositions.length === 0) {
             select.innerHTML = '<option value="none">-- No inventory available --</option>';
             return;
         }
 
-        const options = GAME_STATE.physicalPositions.map((pos, index) => {
-            return `<option value="${index}">${pos.tonnage}MT from ${pos.supplier} @ $${pos.costPerMT}/MT</option>`;
+        // CRITICAL FIX: Only show inventory going to the SAME destination port
+        // Filter by: 1) matching destinationPort, 2) not already sold
+        const matchingPositions = GAME_STATE.physicalPositions
+            .map((pos, index) => ({ pos, index }))
+            .filter(({ pos }) => {
+                // Must match destination port AND not be sold already
+                // Both buy and sell use M+1 pricing (QP implicit match)
+                return pos.destinationPort === destinationPort && !pos.soldInfo;
+            });
+
+        if (matchingPositions.length === 0) {
+            select.innerHTML = `<option value="none">-- No cargo going to ${destinationPort} --</option>`;
+            return;
+        }
+
+        const options = matchingPositions.map(({ pos, index }) => {
+            return `<option value="${index}">${pos.tonnage}MT from ${pos.supplier} → ${pos.destinationPort} @ $${Math.round(pos.costPerMT)}/MT</option>`;
         }).join('');
 
         select.innerHTML = '<option value="none">Select inventory...</option>' + options;
