@@ -99,7 +99,7 @@ const GAME_STATE = {
             type: 'PHYSICAL',
             supplier: supplier,
             originPort: supplier === 'CALLAO' ? 'Callao, Peru' : 'Antofagasta, Chile',
-            destinationPort: freightData.PORT_NAME + ', ' + freightData.COUNTRY,
+            destinationPort: freightData.PORT_NAME,
             tonnage: tonnage,
             costPerMT: costPerMT,
             totalCost: totalCost,

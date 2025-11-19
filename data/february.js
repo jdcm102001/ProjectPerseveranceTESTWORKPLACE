@@ -302,7 +302,7 @@ window.FEBRUARY_DATA = {
         "REGION": "AMERICAS",
         "MIN_QUANTITY_MT": 15,
         "MAX_QUANTITY_MT": 60,
-        "PORT_OF_DISCHARGE": "New Orleans, LA",
+        "PORT_OF_DISCHARGE": "New Orleans",
         "REFERENCE_EXCHANGE": "COMEX",
         "PORT_TYPE": "Hub",
         "REGIONAL_PREMIUM_USD": 50,

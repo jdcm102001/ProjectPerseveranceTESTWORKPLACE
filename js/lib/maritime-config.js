@@ -70,12 +70,14 @@ export const PORT_NAME_MAP = {
 
     // New Orleans variations
     'New Orleans, USA': 'neworleans',
+    'New Orleans, LA': 'neworleans',
     'New Orleans': 'neworleans',
     'NEW_ORLEANS': 'neworleans',
     'NEWORLEANS': 'neworleans',
 
     // Houston variations
     'Houston, USA': 'houston',
+    'Houston, TX': 'houston',
     'Houston': 'houston',
     'HOUSTON': 'houston',
 

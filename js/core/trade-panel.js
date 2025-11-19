@@ -151,7 +151,7 @@ const TradePanel = {
 
         const destinations = Object.keys(freightData).map(key => {
             const route = freightData[key];
-            return `<option value="${key}">${route.PORT_NAME}, ${route.COUNTRY}</option>`;
+            return `<option value="${key}">${route.PORT_NAME}</option>`;
         }).join('');
 
         select.innerHTML = '<option value="">Select destination...</option>' + destinations;
@@ -163,30 +163,47 @@ const TradePanel = {
 
     populateInventory() {
         const select = document.getElementById('sellInventory');
-        const destinationPort = this.currentTrade.dest; // Destination port for this sale
+        const destinationPort = this.currentTrade.dest; // Destination port required by buyer
 
         if (GAME_STATE.physicalPositions.length === 0) {
             select.innerHTML = '<option value="none">-- No inventory available --</option>';
             return;
         }
 
-        // CRITICAL FIX: Only show inventory going to the SAME destination port
-        // Filter by: 1) matching destinationPort, 2) not already sold
+        // BUSINESS RULES FOR SELLABLE CARGO:
+        // 1. Destination port must EXACTLY match buyer's required port
+        // 2. Status must be IN_TRANSIT or ARRIVED (not already sold)
+        // 3. M+1 QP period implicitly matches (both buy and sell use M+1)
         const matchingPositions = GAME_STATE.physicalPositions
             .map((pos, index) => ({ pos, index }))
             .filter(({ pos }) => {
-                // Must match destination port AND not be sold already
-                // Both buy and sell use M+1 pricing (QP implicit match)
-                return pos.destinationPort === destinationPort && !pos.soldInfo;
+                // Rule 1: Check if destination matches
+                if (pos.destinationPort !== destinationPort) {
+                    return false;
+                }
+
+                // Rule 2: Check if not already sold
+                // Position is sold if soldInfo exists OR status is SOLD_PENDING_SETTLEMENT
+                if (pos.soldInfo || pos.status === 'SOLD_PENDING_SETTLEMENT') {
+                    return false;
+                }
+
+                // Rule 3: Must be IN_TRANSIT or ARRIVED (can sell cargo en route or at port)
+                if (pos.status !== 'IN_TRANSIT' && pos.status !== 'ARRIVED') {
+                    return false;
+                }
+
+                return true;
             });
 
         if (matchingPositions.length === 0) {
-            select.innerHTML = `<option value="none">-- No cargo going to ${destinationPort} --</option>`;
+            select.innerHTML = `<option value="none">-- No cargo currently shipping to ${destinationPort} --</option>`;
             return;
         }
 
         const options = matchingPositions.map(({ pos, index }) => {
-            return `<option value="${index}">${pos.tonnage}MT from ${pos.supplier} → ${pos.destinationPort} @ $${Math.round(pos.costPerMT)}/MT</option>`;
+            const statusLabel = pos.status === 'ARRIVED' ? '✓ Arrived' : '⛵ In Transit';
+            return `<option value="${index}">${pos.tonnage}MT from ${pos.supplier} → ${pos.destinationPort} (${statusLabel}) @ $${Math.round(pos.costPerMT)}/MT</option>`;
         }).join('');
 
         select.innerHTML = '<option value="none">Select inventory...</option>' + options;
@@ -336,26 +353,48 @@ const TradePanel = {
         const tonnage = parseFloat(document.getElementById('sellTonnage').value);
         const inventoryIndex = parseInt(document.getElementById('sellInventory').value);
 
+        // Validation 1: Check if inventory was selected
         if (isNaN(inventoryIndex)) {
-            alert('❌ Please select inventory to sell');
+            alert('❌ Sale Error\n\nPlease select inventory to sell from the dropdown.');
             return;
         }
 
+        // Validation 2: Check if position exists
         const position = GAME_STATE.physicalPositions[inventoryIndex];
-        if (!position || position.tonnage < tonnage) {
-            alert('❌ Insufficient inventory');
+        if (!position) {
+            alert('❌ Sale Error\n\nSelected position not found. Please refresh and try again.');
+            return;
+        }
+
+        // Validation 3: Check if position destination matches buyer's port
+        const buyerPort = this.currentTrade.dest;
+        if (position.destinationPort !== buyerPort) {
+            alert(`❌ Sale Error\n\nCargo destination mismatch:\n\nYour cargo: ${position.destinationPort}\nBuyer requires: ${buyerPort}\n\nCannot sell cargo to a different destination.`);
+            return;
+        }
+
+        // Validation 4: Check if already sold
+        if (position.soldInfo || position.status === 'SOLD_PENDING_SETTLEMENT') {
+            alert('❌ Sale Error\n\nThis cargo has already been sold.');
+            return;
+        }
+
+        // Validation 5: Check tonnage availability
+        if (position.tonnage < tonnage) {
+            alert(`❌ Sale Error\n\nInsufficient inventory:\n\nAvailable: ${position.tonnage} MT\nRequested: ${tonnage} MT`);
             return;
         }
 
         const region = this.currentTrade.buyer;
 
-        // Check if sale is allowed
+        // Validation 6: Check regional sale limits
         const saleCheck = GAME_STATE.canSell(region, tonnage);
         if (!saleCheck.canSell) {
             alert(`❌ Sale Not Allowed\n\n${saleCheck.message}`);
             return;
         }
 
+        // Calculate sale price
         const monthData = GAME_STATE.currentMonthData;
         const exchange = this.currentTrade.exchange;
         const premium = this.currentTrade.premium || 0;
@@ -369,7 +408,7 @@ const TradePanel = {
 
         GAME_STATE.updateHeader();
 
-        alert(`✅ Sale Executed!\n\n${tonnage} MT to ${region}\nRevenue: $${Math.round(totalRevenue).toLocaleString('en-US')}\nProfit: $${Math.round(profit).toLocaleString('en-US')}\n\nRemaining this month: ${saleCheck.remaining - tonnage}MT`);
+        alert(`✅ Sale Executed!\n\n${tonnage} MT to ${region}\nDestination: ${buyerPort}\nRevenue: $${Math.round(totalRevenue).toLocaleString('en-US')}\nProfit: $${Math.round(profit).toLocaleString('en-US')}\n\nRemaining this month: ${saleCheck.remaining - tonnage}MT`);
         this.close();
 
         // Refresh widgets
