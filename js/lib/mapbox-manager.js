@@ -157,13 +157,12 @@ class MapboxManager {
     /**
      * Create circle marker icon (for HUB and PARITY ports)
      * @param {string} color - Fill color for the circle
-     * @param {boolean} enhanced - Add glow effect for better visibility
+     * @param {boolean} enhanced - Add manual glow effect for better visibility
      * @returns {HTMLCanvasElement}
      */
     createCircleMarker(color, enhanced = false) {
-        // Use larger canvas size for enhanced markers to accommodate shadow blur
-        // Shadow blur of 8px needs at least 10px padding on each side
-        const size = enhanced ? 44 : 24;
+        // Use larger canvas size for enhanced markers to accommodate manual glow
+        const size = enhanced ? 50 : 24;
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
@@ -171,30 +170,43 @@ class MapboxManager {
 
         const cx = size / 2;
         const cy = size / 2;
-        const radius = 8;
+        const radius = enhanced ? 10 : 8; // Larger radius for hub ports
 
-        // Add glow effect for enhanced markers (hub ports)
+        // Add MANUAL glow effect for enhanced markers (hub ports)
+        // Drawing multiple circles with decreasing opacity creates a visible glow
         if (enhanced) {
-            // Outer glow - canvas is now large enough to contain the full blur
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = color;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+            // Draw 4 glow layers from outer to inner
+            ctx.globalAlpha = 0.15;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 10, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            ctx.globalAlpha = 0.25;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 7, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 4, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Reset alpha for main circle
+            ctx.globalAlpha = 1.0;
         }
 
-        // Draw circle
+        // Draw main circle
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
 
-        // Reset shadow for stroke
-        if (enhanced) {
-            ctx.shadowBlur = 0;
-        }
-
+        // Draw white stroke
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = enhanced ? 3 : 2; // Thicker stroke for hub ports
         ctx.stroke();
 
         return canvas;
@@ -241,8 +253,8 @@ class MapboxManager {
 
         try {
             // Create marker icons
-            // Use brighter, more luminous green with glow effect for HUB ports for better visibility
-            const greenCircle = this.createCircleMarker('#00FF88', true); // Bright green with glow for HUB
+            // Use bright cyan with manual glow for HUB ports - highly visible against dark map
+            const cyanCircle = this.createCircleMarker('#00FFFF', true); // Bright cyan with glow for HUB
             const yellowCircle = this.createCircleMarker('#F59E0B', false); // Yellow for PARITY
             const redTriangle = this.createTriangleMarker('#EF4444'); // Red for SELLER
 
@@ -260,7 +272,7 @@ class MapboxManager {
                 }
             };
 
-            addMarkerImage('hub-marker', greenCircle);
+            addMarkerImage('hub-marker', cyanCircle);
             addMarkerImage('parity-marker', yellowCircle);
             addMarkerImage('seller-marker', redTriangle);
 
@@ -317,20 +329,21 @@ class MapboxManager {
             });
 
             // Add layers for port markers
+            // Layer order: seller first, then parity, then hub LAST (on top for maximum visibility)
             this.map.addLayer({
-                id: 'hub-ports-layer',
+                id: 'seller-ports-layer',
                 type: 'symbol',
-                source: 'hub-ports',
+                source: 'seller-ports',
                 layout: {
-                    'icon-image': 'hub-marker',
+                    'icon-image': 'seller-marker',
                     'icon-size': [
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        1, 0.4,   // At zoom 1 (very zoomed out), icons are 0.4x
-                        4, 0.8,   // At zoom 4, icons are 0.8x
-                        8, 1.2,   // At zoom 8, icons are 1.2x
-                        12, 1.6   // At zoom 12 (zoomed in), icons are 1.6x
+                        1, 0.4,
+                        4, 0.8,
+                        8, 1.2,
+                        12, 1.6
                     ],
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true,
@@ -340,18 +353,18 @@ class MapboxManager {
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        1, 8,     // At zoom 1, text size is 8
-                        4, 10,    // At zoom 4, text size is 10
-                        8, 11,    // At zoom 8, text size is 11
-                        12, 13    // At zoom 12, text size is 13
+                        1, 8,
+                        4, 10,
+                        8, 11,
+                        12, 13
                     ],
                     'text-offset': [0, 1.5],
                     'text-anchor': 'top'
                 },
                 paint: {
-                    'text-color': '#00FF88',
+                    'text-color': '#EF4444',
                     'text-halo-color': '#000000',
-                    'text-halo-width': 1.5
+                    'text-halo-width': 1
                 }
             });
 
@@ -393,20 +406,21 @@ class MapboxManager {
                 }
             });
 
+            // Hub ports layer LAST - renders on top with bright cyan color and glow
             this.map.addLayer({
-                id: 'seller-ports-layer',
+                id: 'hub-ports-layer',
                 type: 'symbol',
-                source: 'seller-ports',
+                source: 'hub-ports',
                 layout: {
-                    'icon-image': 'seller-marker',
+                    'icon-image': 'hub-marker',
                     'icon-size': [
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        1, 0.4,
-                        4, 0.8,
-                        8, 1.2,
-                        12, 1.6
+                        1, 0.5,   // Slightly larger than others at all zoom levels
+                        4, 0.9,
+                        8, 1.3,
+                        12, 1.8
                     ],
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true,
@@ -416,18 +430,18 @@ class MapboxManager {
                         'interpolate',
                         ['linear'],
                         ['zoom'],
-                        1, 8,
-                        4, 10,
-                        8, 11,
-                        12, 13
+                        1, 9,     // Slightly larger text too
+                        4, 11,
+                        8, 12,
+                        12, 14
                     ],
-                    'text-offset': [0, 1.5],
+                    'text-offset': [0, 1.8],
                     'text-anchor': 'top'
                 },
                 paint: {
-                    'text-color': '#EF4444',
+                    'text-color': '#00FFFF',  // Bright cyan to match icon
                     'text-halo-color': '#000000',
-                    'text-halo-width': 1
+                    'text-halo-width': 2  // Thicker halo for better visibility
                 }
             });
 
