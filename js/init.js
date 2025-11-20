@@ -58,6 +58,12 @@ window.closeSaleDetails = closeSaleDetails;
 window.closeWidget = closeWidget;
 window.updateWidgetElevation = updateWidgetElevation;
 
+// Save/Load convenience functions
+window.saveGame = () => GAME_STATE.saveGame();
+window.loadGame = () => GAME_STATE.loadGame();
+window.exportGame = () => GAME_STATE.exportGameData();
+window.deleteSave = () => GAME_STATE.deleteSave();
+
 /* ==========================================
    INITIALIZATION
    ========================================== */
