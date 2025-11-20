@@ -342,25 +342,37 @@ const GAME_STATE = {
         const scenarioInfo = ScenarioManager.getScenarioInfo();
         const maxTurns = scenarioInfo ? scenarioInfo.totalTurns : 12;
 
-        // Always visible: Month and Period
+        // 1. Month/Period display
         const periodDisplay = TimeManager.formatPeriod(this.currentMonth, this.currentPeriod);
         document.getElementById('headerMonth').textContent = `${periodDisplay} (Turn ${this.currentTurn}/${maxTurns})`;
 
-        // Key Metrics (expandable section)
+        // 2. Timer is updated by updateTimerDisplay()
+
+        // 3. Practice Funds
+        document.getElementById('headerPracticeFunds').textContent = `$${Math.round(this.practiceFunds).toLocaleString('en-US')}`;
+
+        // 4. Total P&L
+        const plColor = this.totalPL >= 0 ? '#10b981' : '#ef4444';
+        const plElement = document.getElementById('headerTotalPL');
+        plElement.textContent = `${this.totalPL >= 0 ? '+' : ''}$${Math.round(this.totalPL).toLocaleString('en-US')}`;
+        plElement.style.color = plColor;
+
+        // 5. Buying Power
         const buyingPower = this.practiceFunds + (this.locLimit - this.locUsed);
         document.getElementById('headerBuyingPower').textContent = `$${Math.round(buyingPower).toLocaleString('en-US')}`;
+
+        // 6. Physical Inventory
+        const totalPhysicalMT = this.physicalPositions.reduce((sum, pos) => sum + pos.tonnage, 0);
+        document.getElementById('headerPhysicalMT').textContent = `${totalPhysicalMT.toFixed(1)} MT`;
+
+        // Secondary metrics (expandable section)
         document.getElementById('headerLOC').textContent = `$${Math.round(this.locUsed).toLocaleString('en-US')} / $${this.locLimit.toLocaleString('en-US')}`;
         document.getElementById('headerLOCInterest').textContent = `$${Math.round(this.locInterestNextMonth).toLocaleString('en-US')}`;
 
         // Calculate yearly interest rate from monthly SOFR
-        // SOFR_1M_PERCENT is the 1-month rate, multiply by 12 for yearly
         const monthlySOFR = data.FIXED_RULES.COST_OF_CARRY.SOFR_1M_PERCENT;
         const yearlyRate = (monthlySOFR * 12).toFixed(2);
         document.getElementById('headerInterestRate').textContent = `${yearlyRate}%`;
-
-        // Physical inventory
-        const totalPhysicalMT = this.physicalPositions.reduce((sum, pos) => sum + pos.tonnage, 0);
-        document.getElementById('headerPhysicalMT').textContent = `${totalPhysicalMT.toFixed(1)} MT`;
 
         // Update widget elevation based on current state
         if (typeof window.updateWidgetElevation === 'function') {
