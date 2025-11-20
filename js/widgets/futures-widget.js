@@ -377,6 +377,13 @@ const FuturesWidget = {
     renderAvailableContracts(container) {
         const monthData = GAME_STATE.currentMonthData;
 
+        // Defensive check: ensure month data is loaded
+        if (!monthData || !monthData.PRICING) {
+            console.warn('FuturesWidget: Month data not loaded yet');
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Loading market data...</div>';
+            return;
+        }
+
         let contracts = [];
 
         // Build contract list based on view

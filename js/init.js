@@ -61,11 +61,18 @@ window.updateWidgetElevation = updateWidgetElevation;
    INITIALIZATION
    ========================================== */
 
-document.addEventListener('DOMContentLoaded', function() {
-    GAME_STATE.init();
+document.addEventListener('DOMContentLoaded', async function() {
+    // CRITICAL: Wait for async scenario loading to complete
+    console.log('🎮 Starting game initialization...');
+    await GAME_STATE.init();
+    console.log('✅ GAME_STATE initialized, currentMonthData:', GAME_STATE.currentMonthData);
+
+    // Now safe to initialize widgets (they depend on month data)
+    console.log('📊 Initializing widgets...');
     MarketsWidget.init();
     FuturesWidget.init();
     TradePanel.init();
+    console.log('✅ Widgets initialized');
 
     // Setup drag and drop
     document.querySelectorAll('.widget-item').forEach(item => {
