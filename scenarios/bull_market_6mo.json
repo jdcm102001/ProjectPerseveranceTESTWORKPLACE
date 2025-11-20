@@ -1,0 +1,71 @@
+{
+  "id": "bull_market_6mo",
+  "name": "Bull Market 2025",
+  "difficulty": "Medium",
+  "description": "Chinese stimulus and supply disruptions drive copper prices to record highs. Navigate 6 months of rising prices, tight supply, and strong Asian demand.",
+  "duration": 6,
+  "startingCapital": 200000,
+  "locLimit": 200000,
+  "months": [
+    {
+      "file": "january.js",
+      "monthNumber": 1,
+      "name": "January",
+      "description": "Rally begins - China announces infrastructure spending"
+    },
+    {
+      "file": "february.js",
+      "monthNumber": 2,
+      "name": "February",
+      "description": "Momentum builds - Asian demand strengthens"
+    },
+    {
+      "file": "march.js",
+      "monthNumber": 3,
+      "name": "March",
+      "description": "Mid-point - Supply tightness emerges"
+    },
+    {
+      "file": "april.js",
+      "monthNumber": 4,
+      "name": "April",
+      "description": "Acceleration - Prices break through key resistance"
+    },
+    {
+      "file": "may.js",
+      "monthNumber": 5,
+      "name": "May",
+      "description": "Peak rally - Record highs and premium expansion"
+    },
+    {
+      "file": "june.js",
+      "monthNumber": 6,
+      "name": "June",
+      "description": "Conclusion - Backwardation signals market top"
+    }
+  ],
+  "objectives": [
+    "Maximize profit over 6-month period",
+    "Understand M+1 quotational pricing mechanics",
+    "Learn to hedge physical positions with futures",
+    "Navigate changing supply/demand dynamics",
+    "Master the transition from contango to backwardation"
+  ],
+  "scoringCriteria": {
+    "excellent": {
+      "minProfitUSD": 50000,
+      "minROI": 25,
+      "description": "Outstanding performance - You've mastered copper trading!"
+    },
+    "good": {
+      "minProfitUSD": 25000,
+      "minROI": 12.5,
+      "description": "Good performance - Solid grasp of trading fundamentals"
+    },
+    "passing": {
+      "minProfitUSD": 10000,
+      "minROI": 5,
+      "description": "Passing performance - Understanding the basics"
+    }
+  }
+}
