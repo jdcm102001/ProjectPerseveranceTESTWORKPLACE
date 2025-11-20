@@ -1,4 +1,5 @@
 import { GAME_STATE } from './game-state.js';
+import { TimeManager } from './time-manager.js';
 import { PositionsWidget } from '../widgets/positions-widget.js';
 import { MarketsWidget } from '../widgets/markets-widget.js';
 import { ExposureWarnings } from '../utils/exposure-warnings.js';
@@ -226,11 +227,15 @@ const TradePanel = {
         document.getElementById('buyPricePerMT').textContent = `$${Math.round(selectedPrice).toLocaleString('en-US')}/MT`;
         document.getElementById('buyTotalCost').textContent = `$${Math.round(totalCost).toLocaleString('en-US')}`;
 
-        const currentMonth = GAME_STATE.currentMonth;
-        const nextMonth = this.getNextMonth(currentMonth);
-        const settlementMonth = this.getNextMonth(nextMonth);
+        // Calculate M+2 settlement period
+        const settlement = TimeManager.calculateSettlement(GAME_STATE.currentMonth, GAME_STATE.currentPeriod);
+        const settlementDisplay = TimeManager.formatPeriod(settlement.settlementMonth, settlement.settlementPeriod);
+
+        // M+1 is always next month (regardless of current period)
+        const qpMonth = TimeManager.getMonthName(GAME_STATE.currentMonth + 1);
+
         document.getElementById('buyQPWarning').textContent =
-            `QP settlement in ${settlementMonth} based on ${nextMonth} average`;
+            `Settlement: ${settlementDisplay} (M+2) | QP: ${qpMonth} avg (M+1)`;
     },
 
     calculateSell() {
@@ -266,11 +271,15 @@ const TradePanel = {
         profitElement.textContent = (netProfit > 0 ? '+' : '') + `$${Math.round(netProfit).toLocaleString('en-US')}`;
         profitElement.classList.toggle('negative', netProfit < 0);
 
-        const currentMonth = GAME_STATE.currentMonth;
-        const nextMonth = this.getNextMonth(currentMonth);
-        const settlementMonth = this.getNextMonth(nextMonth);
+        // Calculate M+2 settlement period (settlement happens 2 turns after sale)
+        const settlement = TimeManager.calculateSettlement(GAME_STATE.currentMonth, GAME_STATE.currentPeriod);
+        const settlementDisplay = TimeManager.formatPeriod(settlement.settlementMonth, settlement.settlementPeriod);
+
+        // M+1 is always next month
+        const qpMonth = TimeManager.getMonthName(GAME_STATE.currentMonth + 1);
+
         document.getElementById('sellQPWarning').textContent =
-            `QP settlement in ${settlementMonth} based on ${nextMonth} average`;
+            `Settlement: ${settlementDisplay} (M+2) | QP: ${qpMonth} avg (M+1)`;
     },
 
     executeBuy() {
@@ -292,12 +301,13 @@ const TradePanel = {
         const monthData = GAME_STATE.currentMonthData;
         const premium = this.currentTrade.premium || 0;
 
-        const spotPrice = exchange === 'LME' ? monthData.PRICING.LME.SPOT_AVG : monthData.PRICING.COMEX.SPOT_AVG;
+        // Use M+1 quotational pricing for physical purchase (not spot)
+        const basePrice = exchange === 'LME' ? monthData.PRICING.M_PLUS_1.LME_AVG : monthData.PRICING.M_PLUS_1.COMEX_AVG;
         const originKey = supplier.toUpperCase();
         const freightData = monthData.LOGISTICS.FREIGHT_RATES[originKey][destinationKey];
         const freight = shippingTerms === 'FOB' ? freightData.FOB_RATE_USD_PER_TONNE : freightData.CIF_RATE_USD_PER_TONNE;
 
-        const costPerMT = spotPrice + premium + freight;
+        const costPerMT = basePrice + premium + freight;
         const totalCost = costPerMT * tonnage;
 
         // Check buying power
@@ -325,8 +335,10 @@ const TradePanel = {
         const exposureData = GAME_STATE.calculatePriceExposure();
         ExposureWarnings.checkAndShowWarning(exposureData, 'unhedgedPosition');
 
-        const arrivalMonth = this.getMonthName(position.arrivalTurn);
-        alert(`✅ Purchase Executed!\n\n${tonnage} MT from ${supplier}\nTotal Cost: $${Math.round(totalCost).toLocaleString('en-US')}\nPaid from Funds: $${Math.round(position.paidFromFunds).toLocaleString('en-US')}\nPaid from LOC: $${Math.round(position.paidFromLOC).toLocaleString('en-US')}\n\nTravel Time: ${position.travelTimeDays} days\nArrival: ${arrivalMonth}\n\nRemaining this month: ${purchaseCheck.remaining - tonnage}MT`);
+        // Format arrival period properly
+        const arrivalPeriod = TimeManager.formatPeriod(position.arrivalMonth, position.arrivalPeriod);
+
+        alert(`✅ Purchase Executed!\n\n${tonnage} MT from ${supplier}\nTotal Cost: $${Math.round(totalCost).toLocaleString('en-US')}\nPaid from Funds: $${Math.round(position.paidFromFunds).toLocaleString('en-US')}\nPaid from LOC: $${Math.round(position.paidFromLOC).toLocaleString('en-US')}\n\nTravel Time: ${position.travelTimeDays} days\nArrival: ${arrivalPeriod} (Turn ${position.arrivalTurn})\n\nRemaining this month: ${purchaseCheck.remaining - tonnage}MT`);
         this.close();
 
         // Refresh widgets
@@ -362,8 +374,9 @@ const TradePanel = {
         const exchange = this.currentTrade.exchange;
         const premium = this.currentTrade.premium || 0;
 
-        const spotPrice = exchange === 'COMEX' ? monthData.PRICING.COMEX.SPOT_AVG : monthData.PRICING.LME.SPOT_AVG;
-        const salePrice = spotPrice + premium;
+        // Use M+1 quotational pricing for physical sale (not spot)
+        const basePrice = exchange === 'COMEX' ? monthData.PRICING.M_PLUS_1.COMEX_AVG : monthData.PRICING.M_PLUS_1.LME_AVG;
+        const salePrice = basePrice + premium;
         const totalRevenue = salePrice * tonnage;
 
         // Execute sale

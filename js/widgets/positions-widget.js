@@ -1,4 +1,5 @@
 import { GAME_STATE } from '../core/game-state.js';
+import { TimeManager } from '../core/time-manager.js';
 import { showSaleDetails } from '../core/game-controls.js';
 import { refreshCollapsibles } from '../core/collapsible.js';
 import { MaritimeMapWidget } from './maritime-map-widget.js';
@@ -22,7 +23,18 @@ const PositionsWidget = {
         if (GAME_STATE.physicalPositions) {
             GAME_STATE.physicalPositions.forEach((pos, idx) => {
                 const turnsRemaining = pos.arrivalTurn - GAME_STATE.currentTurn;
-                const daysRemaining = Math.max(0, turnsRemaining * 30); // Rough estimate: 30 days per turn
+                const periodsRemaining = Math.max(0, turnsRemaining);
+
+                // Format arrival period display
+                let arrivalDisplay = '';
+                if (pos.status === 'ARRIVED' || pos.status === 'SOLD_PENDING_SETTLEMENT') {
+                    arrivalDisplay = 'Arrived';
+                } else {
+                    const arrivalInfo = TimeManager.getMonthPeriod(pos.arrivalTurn);
+                    const monthName = TimeManager.getMonthName(arrivalInfo.month).substring(0, 3).toUpperCase();
+                    const periodName = arrivalInfo.period === 1 ? 'Early' : 'Late';
+                    arrivalDisplay = `${monthName} - ${periodName}`;
+                }
 
                 combined.push({
                     id: `BUY_${idx}`,
@@ -32,8 +44,8 @@ const PositionsWidget = {
                     tonnage: pos.tonnage,
                     price: pos.costPerMT,
                     qp: 'M+1',
-                    eta: daysRemaining,
-                    etaDays: daysRemaining,
+                    eta: periodsRemaining,
+                    arrivalDisplay: arrivalDisplay,
                     arrival: pos.status === 'ARRIVED' ? 'Arrived' :
                              pos.status === 'SOLD_PENDING_SETTLEMENT' ? 'Pending Settlement' : 'In Transit',
                     matchId: null,
@@ -116,7 +128,7 @@ const PositionsWidget = {
                         <th>TONNAGE</th>
                         <th>PRICE (INVOICE)</th>
                         <th>QP</th>
-                        <th>ETA</th>
+                        <th>ARRIVAL</th>
                         <th>PROJECTED P&L</th>
                         <th>STATUS</th>
                         <th>HEDGE</th>
@@ -198,7 +210,9 @@ const PositionsWidget = {
                         <div style="font-size: 10px; color: #888; margin-top: 2px;">$${Math.round(pos.price).toLocaleString('en-US')}/MT</div>
                     </td>
                     <td>${pos.qp}</td>
-                    <td>${pos.eta > 0 ? `${pos.eta} days` : 'Delivered'}</td>
+                    <td style="font-size: 11px; font-weight: 600;">
+                        ${pos.arrivalDisplay || (pos.eta > 0 ? `${pos.eta} periods` : 'Delivered')}
+                    </td>
                     <td class="${plClass}" style="font-weight: 700;">${projectedPL}</td>
                     <td><span class="status-badge ${statusClass}">${pos.arrival}</span></td>
                     <td style="font-size: 11px; font-weight: 600;">${hedgeStatus}</td>

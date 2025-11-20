@@ -27,6 +27,9 @@ const FUTURES_SPECS = {
 };
 
 const GAME_STATE = {
+    // Save system version (for backwards compatibility)
+    SAVE_VERSION: '2.0.0-period',  // Period-based system
+
     // Period-based time tracking (NEW SYSTEM)
     currentMonth: 1,                    // Month number (1-6)
     currentPeriod: 1,                   // Period (1=Early, 2=Late)
@@ -66,6 +69,31 @@ const GAME_STATE = {
 
     async init() {
         try {
+            // Check for saved game
+            const hasSave = this.hasSavedGame();
+            let loadSave = false;
+
+            if (hasSave) {
+                loadSave = confirm(
+                    '💾 Saved game found!\n\n' +
+                    'Would you like to continue from your saved game?\n\n' +
+                    'Click OK to load, or Cancel to start a new game.'
+                );
+            }
+
+            if (loadSave) {
+                // Load saved game
+                const success = await this.loadGame();
+                if (success) {
+                    console.log('✅ Game loaded from save');
+                    return;
+                }
+                // If load failed, continue with new game
+            }
+
+            // Start new game
+            console.log('🎮 Starting new game...');
+
             // Load scenario manifest
             const scenario = await ScenarioManager.loadDefaultScenario();
             ScenarioManager.validateScenario(scenario);
@@ -187,6 +215,9 @@ const GAME_STATE = {
             detail: { position }
         }));
 
+        // Auto-save after purchase
+        this.saveGame();
+
         return position;
     },
 
@@ -222,6 +253,9 @@ const GAME_STATE = {
         }
 
         this.recordSale(region, tonnage);
+
+        // Auto-save after sale
+        this.saveGame();
 
         return 0; // Return 0 profit until settlement
     },
@@ -968,6 +1002,9 @@ const GAME_STATE = {
             }
         }));
 
+        // Auto-save after advancing period
+        this.saveGame();
+
         console.log(`⏭️ Advanced to ${TimeManager.formatPeriod(this.currentMonth, this.currentPeriod)} (Turn ${this.currentTurn}/12)`);
     },
 
@@ -1124,6 +1161,257 @@ const GAME_STATE = {
         if (timerButton) {
             timerButton.textContent = TimerManager.isRunning ? '⏸️ Pause' : '▶️ Resume';
         }
+    },
+
+    // ==========================================
+    // SAVE / LOAD SYSTEM
+    // ==========================================
+
+    /**
+     * Save current game state to localStorage
+     * @returns {boolean} Success status
+     */
+    saveGame() {
+        try {
+            const saveData = {
+                version: this.SAVE_VERSION,
+                timestamp: new Date().toISOString(),
+                scenarioId: ScenarioManager.currentScenario?.id || 'bull_market_6mo',
+
+                // Period-based time tracking
+                time: {
+                    currentMonth: this.currentMonth,
+                    currentPeriod: this.currentPeriod,
+                    currentMonthName: this.currentMonthName,
+                    periodName: this.periodName,
+                    currentTurn: this.currentTurn
+                },
+
+                // Financial state
+                finances: {
+                    practiceFunds: this.practiceFunds,
+                    locUsed: this.locUsed,
+                    locLimit: this.locLimit,
+                    locInterestNextPeriod: this.locInterestNextPeriod,
+                    futuresMarginPosted: this.futuresMarginPosted,
+                    futuresMarginLimit: this.futuresMarginLimit,
+                    totalFuturesPL: this.totalFuturesPL,
+                    totalPL: this.totalPL
+                },
+
+                // Positions
+                positions: {
+                    physical: this.physicalPositions,
+                    futures: this.futuresPositions
+                },
+
+                // Monthly limits
+                limits: {
+                    purchases: this.monthlyPurchases,
+                    sales: this.monthlySales
+                },
+
+                // Timer state
+                timer: {
+                    remainingSeconds: TimerManager.remainingSeconds,
+                    isRunning: TimerManager.isRunning,
+                    isPaused: TimerManager.isPaused
+                }
+            };
+
+            localStorage.setItem('tradingSimulatorSave_v2', JSON.stringify(saveData));
+            console.log('💾 Game saved successfully', saveData);
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to save game:', error);
+            alert(`Failed to save game: ${error.message}`);
+            return false;
+        }
+    },
+
+    /**
+     * Load game state from localStorage
+     * @returns {boolean} Success status
+     */
+    async loadGame() {
+        try {
+            const savedData = localStorage.getItem('tradingSimulatorSave_v2');
+            if (!savedData) {
+                console.log('No saved game found');
+                return false;
+            }
+
+            const saveData = JSON.parse(savedData);
+            console.log('📂 Loading game save...', saveData);
+
+            // Version check
+            if (saveData.version !== this.SAVE_VERSION) {
+                console.warn(`⚠️ Save version mismatch: ${saveData.version} vs ${this.SAVE_VERSION}`);
+                const migrate = confirm(
+                    `This save is from a different version (${saveData.version}).\n\n` +
+                    `Current version: ${this.SAVE_VERSION}\n\n` +
+                    `Attempt to load anyway? (may cause issues)`
+                );
+                if (!migrate) {
+                    return false;
+                }
+            }
+
+            // Load scenario
+            if (saveData.scenarioId) {
+                try {
+                    await ScenarioManager.loadScenario(saveData.scenarioId);
+                } catch (error) {
+                    console.error('Failed to load scenario, using default');
+                }
+            }
+
+            // Restore time tracking
+            this.currentMonth = saveData.time.currentMonth;
+            this.currentPeriod = saveData.time.currentPeriod;
+            this.currentMonthName = saveData.time.currentMonthName;
+            this.periodName = saveData.time.periodName;
+            this.currentTurn = saveData.time.currentTurn;
+
+            // Load month data
+            this.loadMonthData(this.currentMonth);
+
+            // Restore financial state
+            this.practiceFunds = saveData.finances.practiceFunds;
+            this.locUsed = saveData.finances.locUsed;
+            this.locLimit = saveData.finances.locLimit;
+            this.locInterestNextPeriod = saveData.finances.locInterestNextPeriod;
+            this.futuresMarginPosted = saveData.finances.futuresMarginPosted;
+            this.futuresMarginLimit = saveData.finances.futuresMarginLimit;
+            this.totalFuturesPL = saveData.finances.totalFuturesPL;
+            this.totalPL = saveData.finances.totalPL;
+
+            // Restore positions
+            this.physicalPositions = saveData.positions.physical || [];
+            this.futuresPositions = saveData.positions.futures || [];
+
+            // Restore monthly limits
+            this.monthlyPurchases = saveData.limits.purchases || {
+                CALLAO_LTA: 0,
+                CALLAO_SPOT: 0,
+                ANTOFAGASTA_SPOT: 0
+            };
+            this.monthlySales = saveData.limits.sales || {
+                AMERICAS: 0,
+                ASIA: 0,
+                EUROPE: 0
+            };
+
+            // Restore timer state
+            if (saveData.timer) {
+                TimerManager.remainingSeconds = saveData.timer.remainingSeconds || 600;
+                if (saveData.timer.isRunning) {
+                    TimerManager.start();
+                } else if (saveData.timer.isPaused) {
+                    TimerManager.pause();
+                }
+            }
+
+            // Update UI
+            this.updateHeader();
+
+            console.log('✅ Game loaded successfully');
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to load game:', error);
+            alert(`Failed to load game: ${error.message}\n\nStarting new game instead.`);
+            return false;
+        }
+    },
+
+    /**
+     * Export game data as downloadable JSON
+     */
+    exportGameData() {
+        try {
+            const saveData = {
+                version: this.SAVE_VERSION,
+                exportDate: new Date().toISOString(),
+                scenarioId: ScenarioManager.currentScenario?.id || 'bull_market_6mo',
+                time: {
+                    currentMonth: this.currentMonth,
+                    currentPeriod: this.currentPeriod,
+                    currentTurn: this.currentTurn
+                },
+                finances: {
+                    practiceFunds: this.practiceFunds,
+                    locUsed: this.locUsed,
+                    totalPL: this.totalPL
+                },
+                positions: {
+                    physical: this.physicalPositions,
+                    futures: this.futuresPositions
+                },
+                limits: {
+                    purchases: this.monthlyPurchases,
+                    sales: this.monthlySales
+                }
+            };
+
+            const dataStr = JSON.stringify(saveData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `trading-simulator-save-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+            link.click();
+
+            URL.revokeObjectURL(url);
+            console.log('📤 Game data exported successfully');
+        } catch (error) {
+            console.error('❌ Failed to export game data:', error);
+            alert(`Failed to export: ${error.message}`);
+        }
+    },
+
+    /**
+     * Import game data from JSON file
+     * @param {File} file - JSON file to import
+     */
+    async importGameData(file) {
+        try {
+            const text = await file.text();
+            const importData = JSON.parse(text);
+
+            // Store in localStorage
+            localStorage.setItem('tradingSimulatorSave_v2', JSON.stringify(importData));
+
+            // Load the imported data
+            const success = await this.loadGame();
+
+            if (success) {
+                alert('✅ Game imported successfully!\n\nReload the page to continue from the imported save.');
+                location.reload();
+            }
+        } catch (error) {
+            console.error('❌ Failed to import game data:', error);
+            alert(`Failed to import: ${error.message}`);
+        }
+    },
+
+    /**
+     * Delete saved game from localStorage
+     */
+    deleteSave() {
+        if (confirm('⚠️ Delete saved game?\n\nThis cannot be undone.')) {
+            localStorage.removeItem('tradingSimulatorSave_v2');
+            console.log('🗑️ Saved game deleted');
+            alert('Saved game deleted. Reload to start fresh.');
+        }
+    },
+
+    /**
+     * Check if a saved game exists
+     * @returns {boolean}
+     */
+    hasSavedGame() {
+        return localStorage.getItem('tradingSimulatorSave_v2') !== null;
     }
 };
 
