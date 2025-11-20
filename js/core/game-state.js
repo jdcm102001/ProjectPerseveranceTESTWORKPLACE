@@ -182,6 +182,10 @@ const GAME_STATE = {
             freightData.TRAVEL_TIME_DAYS
         );
 
+        // M+1 Quotational Pricing - QP month is purchase month + 1
+        const qpMonth = this.currentMonth + 1;
+        const qpMonthName = TimeManager.getMonthName(qpMonth);
+
         const position = {
             id: `POS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             type: 'PHYSICAL',
@@ -189,7 +193,7 @@ const GAME_STATE = {
             originPort: supplier === 'CALLAO' ? 'Callao, Peru' : 'Antofagasta, Chile',
             destinationPort: freightData.PORT_NAME + ', ' + freightData.COUNTRY,
             tonnage: tonnage,
-            costPerMT: costPerMT,
+            costPerMT: costPerMT,  // PROVISIONAL until QP month completes
             totalCost: totalCost,
             paidFromFunds: amountFromFunds,
             paidFromLOC: amountFromLOC,
@@ -197,13 +201,20 @@ const GAME_STATE = {
             shippingTerms: shippingTerms,
             purchaseMonth: this.currentMonth,
             purchasePeriod: this.currentPeriod,
-            purchaseTurn: this.currentTurn,  // Keep for backwards compatibility during transition
+            purchaseTurn: this.currentTurn,
             isLTA: isLTA,
             travelTimeDays: freightData.TRAVEL_TIME_DAYS,
             distanceNM: freightData.DISTANCE_NM,
             arrivalMonth: arrival.arrivalMonth,
             arrivalPeriod: arrival.arrivalPeriod,
             arrivalTurn: TimeManager.getTurnNumber(arrival.arrivalMonth, arrival.arrivalPeriod),
+
+            // M+1 Quotational Pricing fields
+            qpMonth: qpMonth,  // The month whose average determines final price
+            qpMonthName: qpMonthName,
+            provisionalPrice: costPerMT,  // Initial estimate
+            priceFinalized: false,  // Will become true when QP month completes
+
             status: 'IN_TRANSIT'
         };
 
@@ -334,6 +345,85 @@ const GAME_STATE = {
                 }));
             }
         });
+    },
+
+    /**
+     * Reprice positions when their QP month completes (M+1 quotational pricing)
+     * QP month completes when we enter the month AFTER the QP month
+     */
+    repricePendingPositions() {
+        const repricedPositions = [];
+
+        this.physicalPositions.forEach(pos => {
+            // Skip if already finalized
+            if (pos.priceFinalized) return;
+
+            // Skip if no QP month (backwards compatibility)
+            if (!pos.qpMonth) return;
+
+            // Check if QP month has completed
+            // QP month completes when currentMonth > qpMonth
+            // Example: Buy Jan (month 1) → QP = Feb (month 2) → Finalize when month = 3 (March)
+            if (this.currentMonth > pos.qpMonth) {
+                // Get the ACTUAL M+1 price from the month data
+                // We need to load the QP month's data to get its M+1 value
+                const qpMonthData = ScenarioManager.loadMonthData(pos.qpMonth);
+
+                if (qpMonthData && qpMonthData.PRICING && qpMonthData.PRICING.M_PLUS_1) {
+                    // Get final M+1 price for this position's exchange
+                    const finalBasePrice = pos.exchange === 'LME' ?
+                        qpMonthData.PRICING.M_PLUS_1.LME_AVG :
+                        qpMonthData.PRICING.M_PLUS_1.COMEX_AVG;
+
+                    // Recalculate costPerMT with finalized base price
+                    // costPerMT = basePrice + premium + freight
+                    // We need to extract premium and freight from original cost
+                    const oldCostPerMT = pos.costPerMT;
+
+                    // Get supplier premium (should be same as original)
+                    const currentMonthData = this.currentMonthData;
+                    const supplier = pos.supplier === 'CALLAO' ? 'PERUVIAN' : 'CHILEAN';
+                    const premium = currentMonthData.MARKET_DEPTH?.SUPPLY?.[supplier]?.SUPPLIER_PREMIUM_USD || 0;
+
+                    // Get freight (should be same as original)
+                    const freightData = currentMonthData.LOGISTICS?.FREIGHT_RATES?.[pos.supplier]?.[pos.destinationPort.split(',')[0].toUpperCase().trim()];
+                    const freight = freightData ?
+                        (pos.shippingTerms === 'FOB' ? freightData.FOB_RATE_USD_PER_TONNE : freightData.CIF_RATE_USD_PER_TONNE) :
+                        0;
+
+                    // Calculate new costPerMT with finalized base price
+                    const newCostPerMT = finalBasePrice + premium + freight;
+                    const priceDifference = newCostPerMT - oldCostPerMT;
+
+                    // Update position
+                    pos.costPerMT = newCostPerMT;
+                    pos.totalCost = newCostPerMT * pos.tonnage;
+                    pos.priceFinalized = true;
+
+                    repricedPositions.push({
+                        id: pos.id,
+                        qpMonth: pos.qpMonthName,
+                        oldPrice: oldCostPerMT,
+                        newPrice: newCostPerMT,
+                        difference: priceDifference,
+                        tonnage: pos.tonnage
+                    });
+
+                    console.log(`📊 Position repriced: ${pos.id.substr(0, 10)}... | QP: ${pos.qpMonthName} | ${oldCostPerMT.toFixed(2)} → ${newCostPerMT.toFixed(2)} (${priceDifference >= 0 ? '+' : ''}${priceDifference.toFixed(2)}/MT)`);
+                }
+            }
+        });
+
+        if (repricedPositions.length > 0) {
+            console.log(`✅ Repriced ${repricedPositions.length} position(s) with finalized M+1 pricing`);
+
+            // Dispatch event for UI updates
+            window.dispatchEvent(new CustomEvent('positions-repriced', {
+                detail: { positions: repricedPositions }
+            }));
+        }
+
+        return repricedPositions;
     },
 
     processSettlements() {
@@ -933,6 +1023,7 @@ const GAME_STATE = {
      * - Period/month progression
      * - Month data loading
      * - Position status updates
+     * - M+1 quotational price finalization
      * - Settlement processing
      * - Monthly limit resets
      * - Futures price updates
@@ -980,7 +1071,8 @@ const GAME_STATE = {
 
         // Process period events
         this.updatePositionStatus();      // Check for arrivals
-        this.processSettlements();        // Check for settlements
+        this.repricePendingPositions();   // Finalize M+1 quotational prices
+        this.processSettlements();        // Check for settlements (uses finalized prices)
         this.updateFuturesPrices();       // Update futures MTM and check expiries
 
         // Update UI
