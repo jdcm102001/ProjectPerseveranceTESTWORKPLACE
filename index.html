@@ -43,30 +43,44 @@
 <body>
     <!-- Fixed Header Bar -->
     <div class="header-bar">
-        <!-- Always Visible - Month Only -->
+        <!-- 1. Month/Period -->
         <div class="header-metric">
-            <div class="header-metric-label">Month</div>
-            <div class="header-metric-value" id="headerMonth">JAN (1/12)</div>
+            <div class="header-metric-label">Period</div>
+            <div class="header-metric-value" id="headerMonth">JAN - Early (1/12)</div>
         </div>
 
-        <!-- Period Timer -->
-        <div class="header-timer">
-            <div class="header-timer-label">Period Timer</div>
-            <div class="header-timer-display">
-                <span id="periodTimer" class="timer-value">10:00</span>
-                <button id="timerToggleBtn" class="timer-toggle-btn" onclick="window.GAME_STATE.toggleTimer()">⏸️ Pause</button>
-            </div>
-            <div class="timer-progress-container">
-                <div id="timerProgress" class="timer-progress-bar"></div>
-            </div>
+        <!-- 2. Timer (Compact) -->
+        <div class="header-metric header-metric-timer">
+            <div class="header-metric-label">Timer</div>
+            <div class="header-metric-value" id="periodTimer">10:00</div>
         </div>
 
-        <!-- Expandable Key Metrics Section -->
-        <div id="keyMetricsExpanded" style="display: none; margin-left: auto; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1); gap: 30px;">
-            <div class="header-metric">
-                <div class="header-metric-label">Buying Power</div>
-                <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
-            </div>
+        <!-- 3. Practice Funds -->
+        <div class="header-metric">
+            <div class="header-metric-label">Funds</div>
+            <div class="header-metric-value" id="headerPracticeFunds">$200,000</div>
+        </div>
+
+        <!-- 4. Total P&L -->
+        <div class="header-metric">
+            <div class="header-metric-label">P&L</div>
+            <div class="header-metric-value" id="headerTotalPL">$0</div>
+        </div>
+
+        <!-- 5. Buying Power -->
+        <div class="header-metric">
+            <div class="header-metric-label">Buying Power</div>
+            <div class="header-metric-value" id="headerBuyingPower">$400,000</div>
+        </div>
+
+        <!-- 6. Physical Inventory -->
+        <div class="header-metric">
+            <div class="header-metric-label">Inventory</div>
+            <div class="header-metric-value" id="headerPhysicalMT">0 MT</div>
+        </div>
+
+        <!-- Expandable Secondary Metrics (LOC, Interest, etc.) -->
+        <div id="keyMetricsExpanded" style="display: none; position: absolute; top: 65px; left: 0; right: 0; background: var(--bg-header); padding: 10px 20px; border-top: 1px solid rgba(255,255,255,0.1); gap: 30px; display: flex; z-index: 199;">
             <div class="header-metric">
                 <div class="header-metric-label">LOC Used</div>
                 <div class="header-metric-value" id="headerLOC">$0 / $200K</div>
@@ -79,16 +93,13 @@
                 <div class="header-metric-label">Interest Rate</div>
                 <div class="header-metric-value" id="headerInterestRate">5.33%</div>
             </div>
-            <div class="header-metric">
-                <div class="header-metric-label">Physical Inventory</div>
-                <div class="header-metric-value" id="headerPhysicalMT">0 MT</div>
-            </div>
         </div>
 
-        <!-- Toggle Button and Controls -->
-        <button class="key-metrics-toggle" id="keyMetricsToggle" title="Show/Hide Key Metrics">📊 Key Metrics ▼</button>
-        <button class="next-turn-btn" id="nextTurnBtn">NEXT TURN ▶</button>
-        <button class="theme-toggle" id="themeToggleBtn">☀️ Light Mode</button>
+        <!-- 7. Toggle Button and Controls (right side) -->
+        <button class="key-metrics-toggle" id="keyMetricsToggle" title="Show/Hide Secondary Metrics">📊 More ▼</button>
+        <button class="timer-control-btn" id="timerToggleBtn" onclick="window.GAME_STATE.toggleTimer()" title="Pause/Resume Timer">⏸️</button>
+        <button class="next-turn-btn" id="nextTurnBtn">NEXT ▶</button>
+        <button class="theme-toggle" id="themeToggleBtn">☀️</button>
     </div>
 
     <div class="container">
