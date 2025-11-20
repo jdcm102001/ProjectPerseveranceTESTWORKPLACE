@@ -4,44 +4,36 @@ import { MarketsWidget } from '../widgets/markets-widget.js';
 import { FuturesWidget } from '../widgets/futures-widget.js';
 
 function advanceTurn() {
-    if (!confirm(`Advance to next turn?\n\nThis will:\n- Charge interest on LOC: $${Math.round(GAME_STATE.locInterestNextMonth).toLocaleString('en-US')}\n- Move to ${GAME_STATE.currentTurn === 1 ? 'February' : GAME_STATE.currentTurn === 2 ? 'March' : GAME_STATE.currentTurn === 3 ? 'April' : 'May'}\n- Reset monthly limits\n- Update position statuses`)) {
-        return;
-    }
+    // Determine what period we're advancing to
+    const currentPeriodName = GAME_STATE.periodName;
+    const nextTurn = GAME_STATE.currentTurn + 1;
 
-    // Process settlements BEFORE advancing turn
-    const settledPositions = GAME_STATE.processSettlements(GAME_STATE.currentTurn + 1);
+    // Build confirmation message
+    let confirmMessage = `Advance to next period?\n\n`;
+    confirmMessage += `Current: Turn ${GAME_STATE.currentTurn}/12 (${GAME_STATE.currentMonthName} - ${currentPeriodName})\n`;
+    confirmMessage += `Next: Turn ${nextTurn}/12\n\n`;
+    confirmMessage += `This will:\n`;
 
-    // Charge interest
-    GAME_STATE.practiceFunds -= GAME_STATE.locInterestNextMonth;
-    GAME_STATE.totalPL -= GAME_STATE.locInterestNextMonth;
-
-    const interestCharged = GAME_STATE.locInterestNextMonth;
-
-    GAME_STATE.currentTurn++;
-    GAME_STATE.resetMonthlyLimits();
-
-    // Update futures prices to market
-    GAME_STATE.updateFuturesPrices();
-
-    // Update position statuses
-    GAME_STATE.updatePositionStatus(GAME_STATE.currentTurn);
-
-    // Load next month data from window object
-    const monthMap = {
-        2: window.FEBRUARY_DATA,
-        3: window.MARCH_DATA,
-        4: window.APRIL_DATA
-    };
-
-    if (monthMap[GAME_STATE.currentTurn]) {
-        GAME_STATE.currentMonthData = monthMap[GAME_STATE.currentTurn];
-        GAME_STATE.currentMonth = GAME_STATE.currentMonthData.MONTH;
+    // Check if we'll cross month boundary
+    if (GAME_STATE.currentPeriod === 2) {
+        confirmMessage += `- Move to ${GAME_STATE.currentMonth === 1 ? 'February' : GAME_STATE.currentMonth === 2 ? 'March' : GAME_STATE.currentMonth === 3 ? 'April' : GAME_STATE.currentMonth === 4 ? 'May' : GAME_STATE.currentMonth === 5 ? 'June' : 'July'} - Early\n`;
+        confirmMessage += `- Reset monthly limits\n`;
+        if (GAME_STATE.locInterestNextMonth > 0) {
+            confirmMessage += `- Charge LOC interest: $${Math.round(GAME_STATE.locInterestNextMonth).toLocaleString('en-US')}\n`;
+        }
     } else {
-        alert('End of simulation! Only 4 months available.');
+        confirmMessage += `- Move to ${GAME_STATE.currentMonthName} - Late\n`;
+    }
+    confirmMessage += `- Update position statuses\n`;
+    confirmMessage += `- Process settlements\n`;
+    confirmMessage += `- Update futures prices`;
+
+    if (!confirm(confirmMessage)) {
         return;
     }
 
-    GAME_STATE.updateHeader();
+    // Call the new period advancement system
+    GAME_STATE.advancePeriod();
 
     // Refresh all widgets
     MarketsWidget.init();
@@ -49,16 +41,16 @@ function advanceTurn() {
     FuturesWidget.render();
     FuturesWidget.renderGraph();  // Re-render graph with new term structure
 
-    // Dispatch turn-advanced event for maritime map and other widgets
-    window.dispatchEvent(new CustomEvent('turn-advanced', {
-        detail: {
-            newTurn: GAME_STATE.currentTurn,
-            newMonth: GAME_STATE.currentMonth,
-            settledPositions
-        }
-    }));
+    // Show advancement summary
+    const arrivedCount = GAME_STATE.physicalPositions.filter(p => p.status === 'ARRIVED').length;
+    let message = `✅ Advanced to Turn ${GAME_STATE.currentTurn}/12\n`;
+    message += `${GAME_STATE.currentMonthName} - ${GAME_STATE.periodName}\n\n`;
 
-    alert(`✅ Advanced to ${GAME_STATE.currentMonth}!\n\nInterest Charged: $${Math.round(interestCharged).toLocaleString('en-US')}\nMonthly limits reset.\n${GAME_STATE.physicalPositions.filter(p => p.status === 'ARRIVED').length} position(s) arrived.`);
+    if (arrivedCount > 0) {
+        message += `📦 ${arrivedCount} position(s) arrived\n`;
+    }
+
+    alert(message);
 }
 
 function toggleSidebar() {

@@ -1,3 +1,5 @@
+import { TimeManager } from './time-manager.js';
+
 // Futures contract specifications with complete trading parameters
 const FUTURES_SPECS = {
     LME: {
@@ -23,9 +25,17 @@ const FUTURES_SPECS = {
 };
 
 const GAME_STATE = {
-    currentTurn: 1,
-    currentMonth: 'January',
+    // Period-based time tracking (NEW SYSTEM)
+    currentMonth: 1,                    // Month number (1-6)
+    currentPeriod: 1,                   // Period (1=Early, 2=Late)
+    currentMonthName: 'January',        // Display name
+    periodName: 'Early',                // "Early" or "Late"
+    currentTurn: 1,                     // Global turn counter (1-12) - DERIVED from month+period
+
+    // Month data reference
     currentMonthData: null,
+
+    // Financial state
     practiceFunds: 200000,
     locUsed: 0,
     locLimit: 200000,
@@ -59,6 +69,14 @@ const GAME_STATE = {
             console.error('JANUARY_DATA not loaded! Check data files.');
             return;
         }
+
+        // Initialize period-based time tracking
+        this.currentMonth = 1;
+        this.currentPeriod = 1;
+        this.currentMonthName = TimeManager.getMonthName(this.currentMonth);
+        this.periodName = TimeManager.getPeriodName(this.currentPeriod);
+        this.currentTurn = TimeManager.getTurnNumber(this.currentMonth, this.currentPeriod);
+
         this.updateHeader();
     },
 
@@ -94,6 +112,14 @@ const GAME_STATE = {
 
         // Create position
         const freightData = this.currentMonthData.LOGISTICS.FREIGHT_RATES[supplier.toUpperCase()][destination];
+
+        // Calculate arrival using TimeManager
+        const arrival = TimeManager.calculateArrival(
+            this.currentMonth,
+            this.currentPeriod,
+            freightData.TRAVEL_TIME_DAYS
+        );
+
         const position = {
             id: `POS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             type: 'PHYSICAL',
@@ -108,11 +134,14 @@ const GAME_STATE = {
             exchange: exchange,
             shippingTerms: shippingTerms,
             purchaseMonth: this.currentMonth,
-            purchaseTurn: this.currentTurn,
+            purchasePeriod: this.currentPeriod,
+            purchaseTurn: this.currentTurn,  // Keep for backwards compatibility during transition
             isLTA: isLTA,
             travelTimeDays: freightData.TRAVEL_TIME_DAYS,
             distanceNM: freightData.DISTANCE_NM,
-            arrivalTurn: this.currentTurn + Math.ceil(freightData.TRAVEL_TIME_DAYS / 30),
+            arrivalMonth: arrival.arrivalMonth,
+            arrivalPeriod: arrival.arrivalPeriod,
+            arrivalTurn: TimeManager.getTurnNumber(arrival.arrivalMonth, arrival.arrivalPeriod),
             status: 'IN_TRANSIT'
         };
 
@@ -130,6 +159,12 @@ const GAME_STATE = {
     sellCopper(inventoryIndex, tonnage, region, salePrice, totalRevenue) {
         const position = this.physicalPositions[inventoryIndex];
 
+        // Calculate settlement timing using TimeManager (M+2 system)
+        const settlement = TimeManager.calculateSettlement(
+            position.purchaseMonth,
+            position.purchasePeriod
+        );
+
         // Mark position as sold but don't settle yet
         if (!position.soldInfo) {
             position.soldInfo = {
@@ -137,8 +172,12 @@ const GAME_STATE = {
                 tonnage: tonnage,
                 salePrice: salePrice,
                 totalRevenue: totalRevenue,
+                soldMonth: this.currentMonth,
+                soldPeriod: this.currentPeriod,
                 soldTurn: this.currentTurn,
-                settlementTurn: position.purchaseTurn + 2 // Settles 2 turns after purchase
+                settlementMonth: settlement.settlementMonth,
+                settlementPeriod: settlement.settlementPeriod,
+                settlementTurn: TimeManager.getTurnNumber(settlement.settlementMonth, settlement.settlementPeriod)
             };
             position.status = 'SOLD_PENDING_SETTLEMENT';
 
@@ -215,9 +254,10 @@ const GAME_STATE = {
         this.monthlySales[region] = (this.monthlySales[region] || 0) + tonnage;
     },
 
-    updatePositionStatus(turn) {
+    updatePositionStatus() {
         this.physicalPositions.forEach(pos => {
-            if (pos.status === 'IN_TRANSIT' && turn >= pos.arrivalTurn) {
+            // Check if cargo has arrived using period-based comparison
+            if (pos.status === 'IN_TRANSIT' && this.currentTurn >= pos.arrivalTurn) {
                 pos.status = 'ARRIVED';
 
                 // Dispatch event for position status change
@@ -228,12 +268,12 @@ const GAME_STATE = {
         });
     },
 
-    processSettlements(newTurn) {
+    processSettlements() {
         const settledPositions = [];
 
-        // Find positions that should settle this turn
+        // Find positions that should settle this period using period-based comparison
         this.physicalPositions = this.physicalPositions.filter(pos => {
-            if (pos.soldInfo && newTurn >= pos.soldInfo.settlementTurn) {
+            if (pos.soldInfo && this.currentTurn >= pos.soldInfo.settlementTurn) {
                 // Settle the position
                 const cost = pos.costPerMT * pos.soldInfo.tonnage;
                 const profit = pos.soldInfo.totalRevenue - cost;
@@ -265,8 +305,9 @@ const GAME_STATE = {
     updateHeader() {
         const data = this.currentMonthData;
 
-        // Always visible: Month
-        document.getElementById('headerMonth').textContent = `${this.currentMonth.toUpperCase()} (${this.currentTurn}/12)`;
+        // Always visible: Month and Period
+        const periodDisplay = TimeManager.formatPeriod(this.currentMonth, this.currentPeriod);
+        document.getElementById('headerMonth').textContent = `${periodDisplay} (Turn ${this.currentTurn}/12)`;
 
         // Key Metrics (expandable section)
         const buyingPower = this.practiceFunds + (this.locLimit - this.locUsed);
@@ -323,11 +364,15 @@ const GAME_STATE = {
         const oldMarginCalc = this.calculateMarginWithNetting();
         const oldMargin = oldMarginCalc.totalMargin;
 
-        // Calculate expiry turn
+        // Calculate expiry using period system
         let expiryTurn = this.currentTurn;
         if (contract === 'M+1') expiryTurn += 1;
         else if (contract === 'M+3') expiryTurn += 3;
         else if (contract === 'M+12') expiryTurn += 12;
+
+        // Cap expiry at Turn 12 (game end)
+        expiryTurn = Math.min(expiryTurn, 12);
+        const expiry = TimeManager.getMonthPeriod(expiryTurn);
 
         // Create temporary position to test margin requirement
         const tempPosition = {
@@ -343,6 +388,9 @@ const GAME_STATE = {
             unrealizedPL: 0,
             openTurn: this.currentTurn,
             openMonth: this.currentMonth,
+            openPeriod: this.currentPeriod,
+            expiryMonth: expiry.month,
+            expiryPeriod: expiry.period,
             expiryTurn: expiryTurn
         };
 
@@ -386,6 +434,9 @@ const GAME_STATE = {
             unrealizedPL: 0,
             openTurn: this.currentTurn,
             openMonth: this.currentMonth,
+            openPeriod: this.currentPeriod,
+            expiryMonth: expiry.month,
+            expiryPeriod: expiry.period,
             expiryTurn: expiryTurn
         };
 
@@ -742,11 +793,12 @@ const GAME_STATE = {
     },
 
     checkFuturesExpiry() {
+        // Check for positions expiring in this period
         const expiringPositions = this.futuresPositions.filter(p => p.expiryTurn === this.currentTurn);
 
         if (expiringPositions.length === 0) return;
 
-        let expiryMessage = '📅 CONTRACT EXPIRY\n\n';
+        let expiryMessage = `📅 CONTRACT EXPIRY - ${TimeManager.formatPeriod(this.currentMonth, this.currentPeriod)}\n\n`;
         let totalPL = 0;
         let totalFees = 0;
 
@@ -785,6 +837,146 @@ const GAME_STATE = {
 
         this.updateHeader();
         alert(expiryMessage);
+    },
+
+    // ==========================================
+    // PERIOD ADVANCEMENT SYSTEM
+    // ==========================================
+
+    /**
+     * Advance to the next period
+     * Handles:
+     * - Period/month progression
+     * - Month data loading
+     * - Position status updates
+     * - Settlement processing
+     * - Monthly limit resets
+     * - Futures price updates
+     * - Game end detection
+     */
+    advancePeriod() {
+        // Store old period for boundary detection
+        const oldMonth = this.currentMonth;
+        const oldPeriod = this.currentPeriod;
+
+        // Advance to next period
+        const nextPeriod = TimeManager.advancePeriod(this.currentMonth, this.currentPeriod);
+
+        // Check for game end
+        if (nextPeriod.isGameEnd) {
+            this.handleGameEnd();
+            return;
+        }
+
+        // Update time tracking
+        this.currentMonth = nextPeriod.month;
+        this.currentPeriod = nextPeriod.period;
+        this.currentMonthName = TimeManager.getMonthName(this.currentMonth);
+        this.periodName = TimeManager.getPeriodName(this.currentPeriod);
+        this.currentTurn = TimeManager.getTurnNumber(this.currentMonth, this.currentPeriod);
+
+        // Detect month boundary crossing
+        const crossedMonthBoundary = TimeManager.isMonthBoundary(oldMonth, oldPeriod, this.currentMonth, this.currentPeriod);
+
+        // Load new month data if we crossed a month boundary
+        if (crossedMonthBoundary) {
+            this.loadMonthData(this.currentMonth);
+            this.resetMonthlyLimits();
+
+            // Deduct LOC interest at month start
+            if (this.locInterestNextMonth > 0) {
+                this.practiceFunds -= this.locInterestNextMonth;
+                console.log(`💰 LOC Interest deducted: $${this.locInterestNextMonth.toFixed(2)}`);
+            }
+        }
+
+        // Process period events
+        this.updatePositionStatus();      // Check for arrivals
+        this.processSettlements();        // Check for settlements
+        this.updateFuturesPrices();       // Update futures MTM and check expiries
+
+        // Update UI
+        this.updateHeader();
+
+        // Dispatch period change event for widgets
+        window.dispatchEvent(new CustomEvent('period-advanced', {
+            detail: {
+                oldMonth,
+                oldPeriod,
+                newMonth: this.currentMonth,
+                newPeriod: this.currentPeriod,
+                currentTurn: this.currentTurn,
+                crossedMonthBoundary
+            }
+        }));
+
+        console.log(`⏭️ Advanced to ${TimeManager.formatPeriod(this.currentMonth, this.currentPeriod)} (Turn ${this.currentTurn}/12)`);
+    },
+
+    /**
+     * Load month data based on month number
+     * @param {number} monthNumber - Month (1-6)
+     */
+    loadMonthData(monthNumber) {
+        const monthDataMap = {
+            1: 'JANUARY_DATA',
+            2: 'FEBRUARY_DATA',
+            3: 'MARCH_DATA',
+            4: 'APRIL_DATA',
+            5: 'MAY_DATA',
+            6: 'JUNE_DATA'
+        };
+
+        const dataKey = monthDataMap[monthNumber];
+        if (!dataKey || !window[dataKey]) {
+            console.error(`Month data not found for month ${monthNumber} (${dataKey})`);
+            return;
+        }
+
+        this.currentMonthData = window[dataKey];
+        console.log(`📊 Loaded ${TimeManager.getMonthName(monthNumber)} data`);
+    },
+
+    /**
+     * Handle game end (after Turn 12)
+     */
+    handleGameEnd() {
+        const finalScore = this.totalPL;
+        const roi = ((this.totalPL / 200000) * 100).toFixed(2);
+
+        let message = `🎮 GAME COMPLETE!\n\n`;
+        message += `Final Profit/Loss: ${finalScore >= 0 ? '+' : ''}$${Math.round(finalScore).toLocaleString('en-US')}\n`;
+        message += `Return on Investment: ${roi}%\n\n`;
+
+        // Determine grade
+        let grade, gradeEmoji;
+        if (roi >= 25) {
+            grade = 'EXCELLENT';
+            gradeEmoji = '🏆';
+        } else if (roi >= 12.5) {
+            grade = 'GOOD';
+            gradeEmoji = '🥈';
+        } else if (roi >= 5) {
+            grade = 'PASSING';
+            gradeEmoji = '✅';
+        } else {
+            grade = 'NEEDS IMPROVEMENT';
+            gradeEmoji = '📈';
+        }
+
+        message += `Grade: ${gradeEmoji} ${grade}\n\n`;
+        message += `Thank you for playing Project Perseverance!`;
+
+        alert(message);
+
+        // Dispatch game end event
+        window.dispatchEvent(new CustomEvent('game-ended', {
+            detail: {
+                finalPL: finalScore,
+                roi: parseFloat(roi),
+                grade: grade
+            }
+        }));
     }
 };
 
