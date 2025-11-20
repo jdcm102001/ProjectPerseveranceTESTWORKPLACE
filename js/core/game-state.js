@@ -1,5 +1,6 @@
 import { TimeManager } from './time-manager.js';
 import { TimerManager } from './timer-manager.js';
+import { ScenarioManager } from './scenario-manager.js';
 
 // Futures contract specifications with complete trading parameters
 const FUTURES_SPECS = {
@@ -63,33 +64,53 @@ const GAME_STATE = {
         EUROPE: 0
     },
 
-    init() {
-        // Access month data from window object (loaded from script tags)
-        this.currentMonthData = window.JANUARY_DATA;
-        if (!this.currentMonthData) {
-            console.error('JANUARY_DATA not loaded! Check data files.');
-            return;
+    async init() {
+        try {
+            // Load scenario manifest
+            const scenario = await ScenarioManager.loadDefaultScenario();
+            ScenarioManager.validateScenario(scenario);
+
+            console.log(`🎮 Initializing game: ${scenario.name}`);
+            console.log(`📅 Duration: ${scenario.duration} months (${scenario.duration * 2} turns)`);
+
+            // Initialize financial state from scenario
+            const initialState = ScenarioManager.getInitialState(scenario);
+            this.practiceFunds = initialState.practiceFunds;
+            this.locLimit = initialState.locLimit;
+            this.locUsed = initialState.locUsed;
+
+            // Load first month data from scenario
+            this.currentMonthData = ScenarioManager.loadMonthData(1);
+            if (!this.currentMonthData) {
+                console.error('Failed to load initial month data!');
+                return;
+            }
+
+            // Initialize period-based time tracking
+            this.currentMonth = 1;
+            this.currentPeriod = 1;
+            this.currentMonthName = TimeManager.getMonthName(this.currentMonth);
+            this.periodName = TimeManager.getPeriodName(this.currentPeriod);
+            this.currentTurn = TimeManager.getTurnNumber(this.currentMonth, this.currentPeriod);
+
+            // Initialize period timer
+            TimerManager.init({
+                onTick: (remainingSeconds) => {
+                    this.updateTimerDisplay(remainingSeconds);
+                },
+                onExpire: () => {
+                    this.handleTimerExpiration();
+                },
+                autoStart: true
+            });
+
+            this.updateHeader();
+
+            console.log('✅ Game initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize game:', error);
+            alert(`Failed to initialize game: ${error.message}\n\nPlease check the console for details.`);
         }
-
-        // Initialize period-based time tracking
-        this.currentMonth = 1;
-        this.currentPeriod = 1;
-        this.currentMonthName = TimeManager.getMonthName(this.currentMonth);
-        this.periodName = TimeManager.getPeriodName(this.currentPeriod);
-        this.currentTurn = TimeManager.getTurnNumber(this.currentMonth, this.currentPeriod);
-
-        // Initialize period timer
-        TimerManager.init({
-            onTick: (remainingSeconds) => {
-                this.updateTimerDisplay(remainingSeconds);
-            },
-            onExpire: () => {
-                this.handleTimerExpiration();
-            },
-            autoStart: true
-        });
-
-        this.updateHeader();
     },
 
     resetMonthlyLimits() {
@@ -317,9 +338,13 @@ const GAME_STATE = {
     updateHeader() {
         const data = this.currentMonthData;
 
+        // Get scenario info for total turns
+        const scenarioInfo = ScenarioManager.getScenarioInfo();
+        const maxTurns = scenarioInfo ? scenarioInfo.totalTurns : 12;
+
         // Always visible: Month and Period
         const periodDisplay = TimeManager.formatPeriod(this.currentMonth, this.currentPeriod);
-        document.getElementById('headerMonth').textContent = `${periodDisplay} (Turn ${this.currentTurn}/12)`;
+        document.getElementById('headerMonth').textContent = `${periodDisplay} (Turn ${this.currentTurn}/${maxTurns})`;
 
         // Key Metrics (expandable section)
         const buyingPower = this.practiceFunds + (this.locLimit - this.locUsed);
@@ -871,14 +896,18 @@ const GAME_STATE = {
         const oldMonth = this.currentMonth;
         const oldPeriod = this.currentPeriod;
 
-        // Advance to next period
-        const nextPeriod = TimeManager.advancePeriod(this.currentMonth, this.currentPeriod);
+        // Get scenario info to check duration
+        const scenarioInfo = ScenarioManager.getScenarioInfo();
+        const maxTurns = scenarioInfo ? scenarioInfo.totalTurns : 12;
 
-        // Check for game end
-        if (nextPeriod.isGameEnd) {
+        // Check for game end BEFORE advancing
+        if (this.currentTurn >= maxTurns) {
             this.handleGameEnd();
             return;
         }
+
+        // Advance to next period
+        const nextPeriod = TimeManager.advancePeriod(this.currentMonth, this.currentPeriod);
 
         // Update time tracking
         this.currentMonth = nextPeriod.month;
@@ -930,57 +959,52 @@ const GAME_STATE = {
     },
 
     /**
-     * Load month data based on month number
-     * @param {number} monthNumber - Month (1-6)
+     * Load month data based on month number using scenario manager
+     * @param {number} monthNumber - Month (1-N)
      */
     loadMonthData(monthNumber) {
-        const monthDataMap = {
-            1: 'JANUARY_DATA',
-            2: 'FEBRUARY_DATA',
-            3: 'MARCH_DATA',
-            4: 'APRIL_DATA',
-            5: 'MAY_DATA',
-            6: 'JUNE_DATA'
-        };
+        try {
+            this.currentMonthData = ScenarioManager.loadMonthData(monthNumber);
+        } catch (error) {
+            console.error(`Failed to load month ${monthNumber} data:`, error);
+            // Fallback to hardcoded map for backwards compatibility
+            const monthDataMap = {
+                1: 'JANUARY_DATA',
+                2: 'FEBRUARY_DATA',
+                3: 'MARCH_DATA',
+                4: 'APRIL_DATA',
+                5: 'MAY_DATA',
+                6: 'JUNE_DATA'
+            };
 
-        const dataKey = monthDataMap[monthNumber];
-        if (!dataKey || !window[dataKey]) {
-            console.error(`Month data not found for month ${monthNumber} (${dataKey})`);
-            return;
+            const dataKey = monthDataMap[monthNumber];
+            if (!dataKey || !window[dataKey]) {
+                console.error(`Month data not found for month ${monthNumber} (${dataKey})`);
+                return;
+            }
+
+            this.currentMonthData = window[dataKey];
+            console.log(`📊 Loaded ${TimeManager.getMonthName(monthNumber)} data (fallback)`);
         }
-
-        this.currentMonthData = window[dataKey];
-        console.log(`📊 Loaded ${TimeManager.getMonthName(monthNumber)} data`);
     },
 
     /**
-     * Handle game end (after Turn 12)
+     * Handle game end (after Turn 12 or scenario duration)
      */
     handleGameEnd() {
         const finalScore = this.totalPL;
-        const roi = ((this.totalPL / 200000) * 100).toFixed(2);
+        const scenarioInfo = ScenarioManager.getScenarioInfo();
+        const startingCapital = scenarioInfo?.startingCapital || 200000;
+
+        // Use scenario-based grading
+        const gradeInfo = ScenarioManager.calculateGrade(finalScore, startingCapital);
 
         let message = `🎮 GAME COMPLETE!\n\n`;
+        message += `Scenario: ${scenarioInfo?.name || 'Unknown'}\n`;
         message += `Final Profit/Loss: ${finalScore >= 0 ? '+' : ''}$${Math.round(finalScore).toLocaleString('en-US')}\n`;
-        message += `Return on Investment: ${roi}%\n\n`;
-
-        // Determine grade
-        let grade, gradeEmoji;
-        if (roi >= 25) {
-            grade = 'EXCELLENT';
-            gradeEmoji = '🏆';
-        } else if (roi >= 12.5) {
-            grade = 'GOOD';
-            gradeEmoji = '🥈';
-        } else if (roi >= 5) {
-            grade = 'PASSING';
-            gradeEmoji = '✅';
-        } else {
-            grade = 'NEEDS IMPROVEMENT';
-            gradeEmoji = '📈';
-        }
-
-        message += `Grade: ${gradeEmoji} ${grade}\n\n`;
+        message += `Return on Investment: ${gradeInfo.roi}%\n\n`;
+        message += `Grade: ${gradeInfo.gradeEmoji} ${gradeInfo.grade}\n`;
+        message += `${gradeInfo.description}\n\n`;
         message += `Thank you for playing Project Perseverance!`;
 
         alert(message);
@@ -989,8 +1013,9 @@ const GAME_STATE = {
         window.dispatchEvent(new CustomEvent('game-ended', {
             detail: {
                 finalPL: finalScore,
-                roi: parseFloat(roi),
-                grade: grade
+                roi: parseFloat(gradeInfo.roi),
+                grade: gradeInfo.grade,
+                scenario: scenarioInfo
             }
         }));
 
