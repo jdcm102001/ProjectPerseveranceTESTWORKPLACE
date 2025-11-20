@@ -41,7 +41,7 @@ const GAME_STATE = {
     practiceFunds: 200000,
     locUsed: 0,
     locLimit: 200000,
-    locInterestNextMonth: 0,
+    locInterestNextPeriod: 0,  // Interest charged EVERY period (twice per month)
     physicalPositions: [],
     futuresPositions: [],
     futuresMarginPosted: 0,     // Total margin posted (IM + accumulated P/L)
@@ -126,10 +126,11 @@ const GAME_STATE = {
         };
     },
 
-    calculateMonthlyInterest() {
-        // Interest only on LOC used, at 4.32% annual (0.36% monthly)
-        const monthlyRate = 0.0036;
-        this.locInterestNextMonth = this.locUsed * monthlyRate;
+    calculatePeriodInterest() {
+        // Interest on LOC used, at 4.32% annual (0.36% monthly, 0.18% per period)
+        // Since there are 2 periods per month, we divide monthly rate by 2
+        const periodRate = 0.0018;  // 0.36% / 2 = 0.18% per period
+        this.locInterestNextPeriod = this.locUsed * periodRate;
     },
 
     purchaseCopper(supplier, tonnage, costPerMT, totalCost, isLTA, exchange, shippingTerms, destination) {
@@ -140,8 +141,8 @@ const GAME_STATE = {
         this.practiceFunds -= amountFromFunds;
         this.locUsed += amountFromLOC;
 
-        // Calculate interest for next month
-        this.calculateMonthlyInterest();
+        // Calculate interest for next period
+        this.calculatePeriodInterest();
 
         // Create position
         const freightData = this.currentMonthData.LOGISTICS.FREIGHT_RATES[supplier.toUpperCase()][destination];
@@ -324,7 +325,7 @@ const GAME_STATE = {
                     profit: profit
                 });
 
-                this.calculateMonthlyInterest();
+                this.calculatePeriodInterest();
 
                 // Remove this position from active positions
                 return false;
@@ -367,7 +368,7 @@ const GAME_STATE = {
 
         // Secondary metrics (expandable section)
         document.getElementById('headerLOC').textContent = `$${Math.round(this.locUsed).toLocaleString('en-US')} / $${this.locLimit.toLocaleString('en-US')}`;
-        document.getElementById('headerLOCInterest').textContent = `$${Math.round(this.locInterestNextMonth).toLocaleString('en-US')}`;
+        document.getElementById('headerLOCInterest').textContent = `$${Math.round(this.locInterestNextPeriod).toLocaleString('en-US')}`;
 
         // Calculate yearly interest rate from monthly SOFR
         const monthlySOFR = data.FIXED_RULES.COST_OF_CARRY.SOFR_1M_PERCENT;
@@ -935,12 +936,12 @@ const GAME_STATE = {
         if (crossedMonthBoundary) {
             this.loadMonthData(this.currentMonth);
             this.resetMonthlyLimits();
+        }
 
-            // Deduct LOC interest at month start
-            if (this.locInterestNextMonth > 0) {
-                this.practiceFunds -= this.locInterestNextMonth;
-                console.log(`💰 LOC Interest deducted: $${this.locInterestNextMonth.toFixed(2)}`);
-            }
+        // Deduct LOC interest EVERY period (not just at month boundaries)
+        if (this.locInterestNextPeriod > 0) {
+            this.practiceFunds -= this.locInterestNextPeriod;
+            console.log(`💰 LOC Interest deducted: $${this.locInterestNextPeriod.toFixed(2)} (Period ${this.currentTurn})`);
         }
 
         // Process period events

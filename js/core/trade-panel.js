@@ -204,22 +204,23 @@ const TradePanel = {
         const supplier = this.currentTrade.supplier;
         const premium = this.currentTrade.premium || 0;
 
-        const spotPrice = exchange === 'LME' ? monthData.PRICING.LME.SPOT_AVG : monthData.PRICING.COMEX.SPOT_AVG;
+        // Use M+1 quotational pricing for physical trades (not spot)
+        const basePrice = exchange === 'LME' ? monthData.PRICING.M_PLUS_1.LME_AVG : monthData.PRICING.M_PLUS_1.COMEX_AVG;
 
         const originKey = supplier.toUpperCase();
         const freightData = monthData.LOGISTICS.FREIGHT_RATES[originKey][destinationKey];
         const fobFreight = freightData.FOB_RATE_USD_PER_TONNE;
         const cifFreight = freightData.CIF_RATE_USD_PER_TONNE;
 
-        const fobPrice = spotPrice + premium + fobFreight;
-        const cifPrice = spotPrice + premium + cifFreight;
+        const fobPrice = basePrice + premium + fobFreight;
+        const cifPrice = basePrice + premium + cifFreight;
         const selectedPrice = shippingTerms === 'FOB' ? fobPrice : cifPrice;
         const totalCost = selectedPrice * tonnage;
 
         document.getElementById('fobPriceDisplay').textContent = `$${Math.round(fobPrice).toLocaleString('en-US')}/MT`;
         document.getElementById('cifPriceDisplay').textContent = `$${Math.round(cifPrice).toLocaleString('en-US')}/MT`;
 
-        document.getElementById('buyBasePrice').textContent = `$${Math.round(spotPrice).toLocaleString('en-US')}/MT`;
+        document.getElementById('buyBasePrice').textContent = `$${Math.round(basePrice).toLocaleString('en-US')}/MT`;
         document.getElementById('buySupplierPremium').textContent = premium > 0 ? `+$${premium}/MT` : '$0/MT';
         document.getElementById('buyFreight').textContent = `$${Math.round(shippingTerms === 'FOB' ? fobFreight : cifFreight)}/MT (${shippingTerms})`;
         document.getElementById('buyPricePerMT').textContent = `$${Math.round(selectedPrice).toLocaleString('en-US')}/MT`;
@@ -240,9 +241,10 @@ const TradePanel = {
         const monthData = GAME_STATE.currentMonthData;
         const exchange = this.currentTrade.exchange;
 
-        const spotPrice = exchange === 'COMEX' ? monthData.PRICING.COMEX.SPOT_AVG : monthData.PRICING.LME.SPOT_AVG;
+        // Use M+1 quotational pricing for physical sales (not spot)
+        const basePrice = exchange === 'COMEX' ? monthData.PRICING.M_PLUS_1.COMEX_AVG : monthData.PRICING.M_PLUS_1.LME_AVG;
 
-        const salePrice = spotPrice + premium;
+        const salePrice = basePrice + premium;
         const totalRevenue = salePrice * tonnage;
 
         let originalCost = 0;
@@ -254,7 +256,7 @@ const TradePanel = {
 
         const netProfit = totalRevenue - originalCost;
 
-        document.getElementById('sellBasePrice').textContent = `$${Math.round(spotPrice).toLocaleString('en-US')}/MT`;
+        document.getElementById('sellBasePrice').textContent = `$${Math.round(basePrice).toLocaleString('en-US')}/MT`;
         document.getElementById('sellRegionalPremium').textContent = `+$${premium}/MT`;
         document.getElementById('sellPricePerMT').textContent = `$${Math.round(salePrice).toLocaleString('en-US')}/MT`;
         document.getElementById('sellTotalRevenue').textContent = `$${Math.round(totalRevenue).toLocaleString('en-US')}`;

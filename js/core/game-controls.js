@@ -18,12 +18,15 @@ function advanceTurn() {
     if (GAME_STATE.currentPeriod === 2) {
         confirmMessage += `- Move to ${GAME_STATE.currentMonth === 1 ? 'February' : GAME_STATE.currentMonth === 2 ? 'March' : GAME_STATE.currentMonth === 3 ? 'April' : GAME_STATE.currentMonth === 4 ? 'May' : GAME_STATE.currentMonth === 5 ? 'June' : 'July'} - Early\n`;
         confirmMessage += `- Reset monthly limits\n`;
-        if (GAME_STATE.locInterestNextMonth > 0) {
-            confirmMessage += `- Charge LOC interest: $${Math.round(GAME_STATE.locInterestNextMonth).toLocaleString('en-US')}\n`;
-        }
     } else {
         confirmMessage += `- Move to ${GAME_STATE.currentMonthName} - Late\n`;
     }
+
+    // Show LOC interest charge (happens EVERY period now)
+    if (GAME_STATE.locInterestNextPeriod > 0) {
+        confirmMessage += `- Charge LOC interest: $${Math.round(GAME_STATE.locInterestNextPeriod).toLocaleString('en-US')}\n`;
+    }
+
     confirmMessage += `- Update position statuses\n`;
     confirmMessage += `- Process settlements\n`;
     confirmMessage += `- Update futures prices`;
