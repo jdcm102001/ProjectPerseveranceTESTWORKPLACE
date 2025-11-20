@@ -1,3 +1,7 @@
+import { TimeManager } from './time-manager.js';
+import { TimerManager } from './timer-manager.js';
+import { ScenarioManager } from './scenario-manager.js';
+
 // Futures contract specifications with complete trading parameters
 const FUTURES_SPECS = {
     LME: {
@@ -23,9 +27,17 @@ const FUTURES_SPECS = {
 };
 
 const GAME_STATE = {
-    currentTurn: 1,
-    currentMonth: 'January',
+    // Period-based time tracking (NEW SYSTEM)
+    currentMonth: 1,                    // Month number (1-6)
+    currentPeriod: 1,                   // Period (1=Early, 2=Late)
+    currentMonthName: 'January',        // Display name
+    periodName: 'Early',                // "Early" or "Late"
+    currentTurn: 1,                     // Global turn counter (1-12) - DERIVED from month+period
+
+    // Month data reference
     currentMonthData: null,
+
+    // Financial state
     practiceFunds: 200000,
     locUsed: 0,
     locLimit: 200000,
@@ -52,14 +64,53 @@ const GAME_STATE = {
         EUROPE: 0
     },
 
-    init() {
-        // Access month data from window object (loaded from script tags)
-        this.currentMonthData = window.JANUARY_DATA;
-        if (!this.currentMonthData) {
-            console.error('JANUARY_DATA not loaded! Check data files.');
-            return;
+    async init() {
+        try {
+            // Load scenario manifest
+            const scenario = await ScenarioManager.loadDefaultScenario();
+            ScenarioManager.validateScenario(scenario);
+
+            console.log(`🎮 Initializing game: ${scenario.name}`);
+            console.log(`📅 Duration: ${scenario.duration} months (${scenario.duration * 2} turns)`);
+
+            // Initialize financial state from scenario
+            const initialState = ScenarioManager.getInitialState(scenario);
+            this.practiceFunds = initialState.practiceFunds;
+            this.locLimit = initialState.locLimit;
+            this.locUsed = initialState.locUsed;
+
+            // Load first month data from scenario
+            this.currentMonthData = ScenarioManager.loadMonthData(1);
+            if (!this.currentMonthData) {
+                console.error('Failed to load initial month data!');
+                return;
+            }
+
+            // Initialize period-based time tracking
+            this.currentMonth = 1;
+            this.currentPeriod = 1;
+            this.currentMonthName = TimeManager.getMonthName(this.currentMonth);
+            this.periodName = TimeManager.getPeriodName(this.currentPeriod);
+            this.currentTurn = TimeManager.getTurnNumber(this.currentMonth, this.currentPeriod);
+
+            // Initialize period timer
+            TimerManager.init({
+                onTick: (remainingSeconds) => {
+                    this.updateTimerDisplay(remainingSeconds);
+                },
+                onExpire: () => {
+                    this.handleTimerExpiration();
+                },
+                autoStart: true
+            });
+
+            this.updateHeader();
+
+            console.log('✅ Game initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize game:', error);
+            alert(`Failed to initialize game: ${error.message}\n\nPlease check the console for details.`);
         }
-        this.updateHeader();
     },
 
     resetMonthlyLimits() {
@@ -94,6 +145,14 @@ const GAME_STATE = {
 
         // Create position
         const freightData = this.currentMonthData.LOGISTICS.FREIGHT_RATES[supplier.toUpperCase()][destination];
+
+        // Calculate arrival using TimeManager
+        const arrival = TimeManager.calculateArrival(
+            this.currentMonth,
+            this.currentPeriod,
+            freightData.TRAVEL_TIME_DAYS
+        );
+
         const position = {
             id: `POS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             type: 'PHYSICAL',
@@ -108,11 +167,14 @@ const GAME_STATE = {
             exchange: exchange,
             shippingTerms: shippingTerms,
             purchaseMonth: this.currentMonth,
-            purchaseTurn: this.currentTurn,
+            purchasePeriod: this.currentPeriod,
+            purchaseTurn: this.currentTurn,  // Keep for backwards compatibility during transition
             isLTA: isLTA,
             travelTimeDays: freightData.TRAVEL_TIME_DAYS,
             distanceNM: freightData.DISTANCE_NM,
-            arrivalTurn: this.currentTurn + Math.ceil(freightData.TRAVEL_TIME_DAYS / 30),
+            arrivalMonth: arrival.arrivalMonth,
+            arrivalPeriod: arrival.arrivalPeriod,
+            arrivalTurn: TimeManager.getTurnNumber(arrival.arrivalMonth, arrival.arrivalPeriod),
             status: 'IN_TRANSIT'
         };
 
@@ -130,6 +192,12 @@ const GAME_STATE = {
     sellCopper(inventoryIndex, tonnage, region, salePrice, totalRevenue) {
         const position = this.physicalPositions[inventoryIndex];
 
+        // Calculate settlement timing using TimeManager (M+2 system)
+        const settlement = TimeManager.calculateSettlement(
+            position.purchaseMonth,
+            position.purchasePeriod
+        );
+
         // Mark position as sold but don't settle yet
         if (!position.soldInfo) {
             position.soldInfo = {
@@ -137,8 +205,12 @@ const GAME_STATE = {
                 tonnage: tonnage,
                 salePrice: salePrice,
                 totalRevenue: totalRevenue,
+                soldMonth: this.currentMonth,
+                soldPeriod: this.currentPeriod,
                 soldTurn: this.currentTurn,
-                settlementTurn: position.purchaseTurn + 2 // Settles 2 turns after purchase
+                settlementMonth: settlement.settlementMonth,
+                settlementPeriod: settlement.settlementPeriod,
+                settlementTurn: TimeManager.getTurnNumber(settlement.settlementMonth, settlement.settlementPeriod)
             };
             position.status = 'SOLD_PENDING_SETTLEMENT';
 
@@ -215,9 +287,10 @@ const GAME_STATE = {
         this.monthlySales[region] = (this.monthlySales[region] || 0) + tonnage;
     },
 
-    updatePositionStatus(turn) {
+    updatePositionStatus() {
         this.physicalPositions.forEach(pos => {
-            if (pos.status === 'IN_TRANSIT' && turn >= pos.arrivalTurn) {
+            // Check if cargo has arrived using period-based comparison
+            if (pos.status === 'IN_TRANSIT' && this.currentTurn >= pos.arrivalTurn) {
                 pos.status = 'ARRIVED';
 
                 // Dispatch event for position status change
@@ -228,12 +301,12 @@ const GAME_STATE = {
         });
     },
 
-    processSettlements(newTurn) {
+    processSettlements() {
         const settledPositions = [];
 
-        // Find positions that should settle this turn
+        // Find positions that should settle this period using period-based comparison
         this.physicalPositions = this.physicalPositions.filter(pos => {
-            if (pos.soldInfo && newTurn >= pos.soldInfo.settlementTurn) {
+            if (pos.soldInfo && this.currentTurn >= pos.soldInfo.settlementTurn) {
                 // Settle the position
                 const cost = pos.costPerMT * pos.soldInfo.tonnage;
                 const profit = pos.soldInfo.totalRevenue - cost;
@@ -265,8 +338,13 @@ const GAME_STATE = {
     updateHeader() {
         const data = this.currentMonthData;
 
-        // Always visible: Month
-        document.getElementById('headerMonth').textContent = `${this.currentMonth.toUpperCase()} (${this.currentTurn}/12)`;
+        // Get scenario info for total turns
+        const scenarioInfo = ScenarioManager.getScenarioInfo();
+        const maxTurns = scenarioInfo ? scenarioInfo.totalTurns : 12;
+
+        // Always visible: Month and Period
+        const periodDisplay = TimeManager.formatPeriod(this.currentMonth, this.currentPeriod);
+        document.getElementById('headerMonth').textContent = `${periodDisplay} (Turn ${this.currentTurn}/${maxTurns})`;
 
         // Key Metrics (expandable section)
         const buyingPower = this.practiceFunds + (this.locLimit - this.locUsed);
@@ -323,11 +401,15 @@ const GAME_STATE = {
         const oldMarginCalc = this.calculateMarginWithNetting();
         const oldMargin = oldMarginCalc.totalMargin;
 
-        // Calculate expiry turn
+        // Calculate expiry using period system
         let expiryTurn = this.currentTurn;
         if (contract === 'M+1') expiryTurn += 1;
         else if (contract === 'M+3') expiryTurn += 3;
         else if (contract === 'M+12') expiryTurn += 12;
+
+        // Cap expiry at Turn 12 (game end)
+        expiryTurn = Math.min(expiryTurn, 12);
+        const expiry = TimeManager.getMonthPeriod(expiryTurn);
 
         // Create temporary position to test margin requirement
         const tempPosition = {
@@ -343,6 +425,9 @@ const GAME_STATE = {
             unrealizedPL: 0,
             openTurn: this.currentTurn,
             openMonth: this.currentMonth,
+            openPeriod: this.currentPeriod,
+            expiryMonth: expiry.month,
+            expiryPeriod: expiry.period,
             expiryTurn: expiryTurn
         };
 
@@ -386,6 +471,9 @@ const GAME_STATE = {
             unrealizedPL: 0,
             openTurn: this.currentTurn,
             openMonth: this.currentMonth,
+            openPeriod: this.currentPeriod,
+            expiryMonth: expiry.month,
+            expiryPeriod: expiry.period,
             expiryTurn: expiryTurn
         };
 
@@ -742,11 +830,12 @@ const GAME_STATE = {
     },
 
     checkFuturesExpiry() {
+        // Check for positions expiring in this period
         const expiringPositions = this.futuresPositions.filter(p => p.expiryTurn === this.currentTurn);
 
         if (expiringPositions.length === 0) return;
 
-        let expiryMessage = '📅 CONTRACT EXPIRY\n\n';
+        let expiryMessage = `📅 CONTRACT EXPIRY - ${TimeManager.formatPeriod(this.currentMonth, this.currentPeriod)}\n\n`;
         let totalPL = 0;
         let totalFees = 0;
 
@@ -785,6 +874,243 @@ const GAME_STATE = {
 
         this.updateHeader();
         alert(expiryMessage);
+    },
+
+    // ==========================================
+    // PERIOD ADVANCEMENT SYSTEM
+    // ==========================================
+
+    /**
+     * Advance to the next period
+     * Handles:
+     * - Period/month progression
+     * - Month data loading
+     * - Position status updates
+     * - Settlement processing
+     * - Monthly limit resets
+     * - Futures price updates
+     * - Game end detection
+     */
+    advancePeriod() {
+        // Store old period for boundary detection
+        const oldMonth = this.currentMonth;
+        const oldPeriod = this.currentPeriod;
+
+        // Get scenario info to check duration
+        const scenarioInfo = ScenarioManager.getScenarioInfo();
+        const maxTurns = scenarioInfo ? scenarioInfo.totalTurns : 12;
+
+        // Check for game end BEFORE advancing
+        if (this.currentTurn >= maxTurns) {
+            this.handleGameEnd();
+            return;
+        }
+
+        // Advance to next period
+        const nextPeriod = TimeManager.advancePeriod(this.currentMonth, this.currentPeriod);
+
+        // Update time tracking
+        this.currentMonth = nextPeriod.month;
+        this.currentPeriod = nextPeriod.period;
+        this.currentMonthName = TimeManager.getMonthName(this.currentMonth);
+        this.periodName = TimeManager.getPeriodName(this.currentPeriod);
+        this.currentTurn = TimeManager.getTurnNumber(this.currentMonth, this.currentPeriod);
+
+        // Detect month boundary crossing
+        const crossedMonthBoundary = TimeManager.isMonthBoundary(oldMonth, oldPeriod, this.currentMonth, this.currentPeriod);
+
+        // Load new month data if we crossed a month boundary
+        if (crossedMonthBoundary) {
+            this.loadMonthData(this.currentMonth);
+            this.resetMonthlyLimits();
+
+            // Deduct LOC interest at month start
+            if (this.locInterestNextMonth > 0) {
+                this.practiceFunds -= this.locInterestNextMonth;
+                console.log(`💰 LOC Interest deducted: $${this.locInterestNextMonth.toFixed(2)}`);
+            }
+        }
+
+        // Process period events
+        this.updatePositionStatus();      // Check for arrivals
+        this.processSettlements();        // Check for settlements
+        this.updateFuturesPrices();       // Update futures MTM and check expiries
+
+        // Update UI
+        this.updateHeader();
+
+        // Reset and restart timer for new period
+        TimerManager.reset();
+        TimerManager.start();
+
+        // Dispatch period change event for widgets
+        window.dispatchEvent(new CustomEvent('period-advanced', {
+            detail: {
+                oldMonth,
+                oldPeriod,
+                newMonth: this.currentMonth,
+                newPeriod: this.currentPeriod,
+                currentTurn: this.currentTurn,
+                crossedMonthBoundary
+            }
+        }));
+
+        console.log(`⏭️ Advanced to ${TimeManager.formatPeriod(this.currentMonth, this.currentPeriod)} (Turn ${this.currentTurn}/12)`);
+    },
+
+    /**
+     * Load month data based on month number using scenario manager
+     * @param {number} monthNumber - Month (1-N)
+     */
+    loadMonthData(monthNumber) {
+        try {
+            this.currentMonthData = ScenarioManager.loadMonthData(monthNumber);
+        } catch (error) {
+            console.error(`Failed to load month ${monthNumber} data:`, error);
+            // Fallback to hardcoded map for backwards compatibility
+            const monthDataMap = {
+                1: 'JANUARY_DATA',
+                2: 'FEBRUARY_DATA',
+                3: 'MARCH_DATA',
+                4: 'APRIL_DATA',
+                5: 'MAY_DATA',
+                6: 'JUNE_DATA'
+            };
+
+            const dataKey = monthDataMap[monthNumber];
+            if (!dataKey || !window[dataKey]) {
+                console.error(`Month data not found for month ${monthNumber} (${dataKey})`);
+                return;
+            }
+
+            this.currentMonthData = window[dataKey];
+            console.log(`📊 Loaded ${TimeManager.getMonthName(monthNumber)} data (fallback)`);
+        }
+    },
+
+    /**
+     * Handle game end (after Turn 12 or scenario duration)
+     */
+    handleGameEnd() {
+        const finalScore = this.totalPL;
+        const scenarioInfo = ScenarioManager.getScenarioInfo();
+        const startingCapital = scenarioInfo?.startingCapital || 200000;
+
+        // Use scenario-based grading
+        const gradeInfo = ScenarioManager.calculateGrade(finalScore, startingCapital);
+
+        let message = `🎮 GAME COMPLETE!\n\n`;
+        message += `Scenario: ${scenarioInfo?.name || 'Unknown'}\n`;
+        message += `Final Profit/Loss: ${finalScore >= 0 ? '+' : ''}$${Math.round(finalScore).toLocaleString('en-US')}\n`;
+        message += `Return on Investment: ${gradeInfo.roi}%\n\n`;
+        message += `Grade: ${gradeInfo.gradeEmoji} ${gradeInfo.grade}\n`;
+        message += `${gradeInfo.description}\n\n`;
+        message += `Thank you for playing Project Perseverance!`;
+
+        alert(message);
+
+        // Dispatch game end event
+        window.dispatchEvent(new CustomEvent('game-ended', {
+            detail: {
+                finalPL: finalScore,
+                roi: parseFloat(gradeInfo.roi),
+                grade: gradeInfo.grade,
+                scenario: scenarioInfo
+            }
+        }));
+
+        // Stop timer on game end
+        TimerManager.stop();
+    },
+
+    // ==========================================
+    // TIMER SYSTEM
+    // ==========================================
+
+    /**
+     * Update timer display in header
+     * @param {number} remainingSeconds - Remaining seconds in period
+     */
+    updateTimerDisplay(remainingSeconds) {
+        const timerElement = document.getElementById('periodTimer');
+        if (!timerElement) return;
+
+        const formattedTime = TimerManager.formatTime(remainingSeconds);
+        timerElement.textContent = formattedTime;
+
+        // Add visual warnings
+        if (remainingSeconds <= 30) {
+            timerElement.className = 'timer-critical';
+        } else if (remainingSeconds <= 60) {
+            timerElement.className = 'timer-warning';
+        } else {
+            timerElement.className = '';
+        }
+
+        // Update progress bar if exists
+        const progressBar = document.getElementById('timerProgress');
+        if (progressBar) {
+            const percentage = ((TimerManager.PERIOD_DURATION_SECONDS - remainingSeconds) / TimerManager.PERIOD_DURATION_SECONDS) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+    },
+
+    /**
+     * Handle timer expiration (auto-advance)
+     */
+    handleTimerExpiration() {
+        console.log('⏰ Timer expired - Auto-advancing period...');
+
+        // Show notification
+        const confirmAdvance = confirm(
+            `⏰ PERIOD TIME EXPIRED!\n\n` +
+            `Current: ${TimeManager.formatPeriod(this.currentMonth, this.currentPeriod)}\n\n` +
+            `The period timer has run out.\n` +
+            `Click OK to advance to the next period.`
+        );
+
+        if (confirmAdvance) {
+            this.advancePeriod();
+
+            // Reset and restart timer for new period
+            TimerManager.reset();
+            TimerManager.start();
+
+            // Refresh widgets
+            if (typeof window.MarketsWidget !== 'undefined') {
+                window.MarketsWidget.init();
+            }
+            if (typeof window.PositionsWidget !== 'undefined') {
+                window.PositionsWidget.render();
+            }
+            if (typeof window.FuturesWidget !== 'undefined') {
+                window.FuturesWidget.render();
+                window.FuturesWidget.renderGraph();
+            }
+        } else {
+            // User declined auto-advance, pause timer
+            TimerManager.pause();
+            console.log('⏸️ User declined auto-advance, timer paused');
+        }
+    },
+
+    /**
+     * Toggle timer pause/resume
+     */
+    toggleTimer() {
+        if (TimerManager.isRunning) {
+            TimerManager.pause();
+            console.log('⏸️ Timer paused by user');
+        } else if (TimerManager.isPaused) {
+            TimerManager.resume();
+            console.log('▶️ Timer resumed by user');
+        }
+
+        // Update button text
+        const timerButton = document.getElementById('timerToggleBtn');
+        if (timerButton) {
+            timerButton.textContent = TimerManager.isRunning ? '⏸️ Pause' : '▶️ Resume';
+        }
     }
 };
 

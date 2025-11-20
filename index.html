@@ -13,6 +13,8 @@
     <script src="data/february.js"></script>
     <script src="data/march.js"></script>
     <script src="data/april.js"></script>
+    <script src="data/may.js"></script>
+    <script src="data/june.js"></script>
 
     <!-- CSS Stylesheets -->
     <link rel="stylesheet" href="css/reset.css">
@@ -45,6 +47,18 @@
         <div class="header-metric">
             <div class="header-metric-label">Month</div>
             <div class="header-metric-value" id="headerMonth">JAN (1/12)</div>
+        </div>
+
+        <!-- Period Timer -->
+        <div class="header-timer">
+            <div class="header-timer-label">Period Timer</div>
+            <div class="header-timer-display">
+                <span id="periodTimer" class="timer-value">10:00</span>
+                <button id="timerToggleBtn" class="timer-toggle-btn" onclick="window.GAME_STATE.toggleTimer()">⏸️ Pause</button>
+            </div>
+            <div class="timer-progress-container">
+                <div id="timerProgress" class="timer-progress-bar"></div>
+            </div>
         </div>
 
         <!-- Expandable Key Metrics Section -->
