@@ -125,19 +125,32 @@ const TimeManager = {
 
     /**
      * Calculate settlement timing (M+2 system)
-     * Settlement occurs 2 turns after purchase
+     * QP is M+1 (next month average). Settlement occurs AFTER QP month completes.
+     * Settlement = first period of (purchase month + 2)
+     *
+     * Example: Buy January → QP = Feb avg → Settlement = March Early
+     *
      * @param {number} purchaseMonth - Month of purchase (1-6)
      * @param {number} purchasePeriod - Period of purchase (1-2)
      * @returns {{settlementMonth: number, settlementPeriod: number}} Settlement timing
      */
     calculateSettlement(purchaseMonth, purchasePeriod) {
-        const purchaseTurn = this.getTurnNumber(purchaseMonth, purchasePeriod);
-        const settlementTurn = purchaseTurn + 2;
+        // Settlement month is always purchase month + 2
+        const settlementMonth = purchaseMonth + 2;
 
-        // Cap at Turn 12 (June Late)
-        const cappedTurn = Math.min(settlementTurn, 12);
+        // Settlement always occurs in the EARLY period (period 1)
+        // This is the first period after the QP month completes
+        const settlementPeriod = 1;
 
-        return this.getMonthPeriod(cappedTurn);
+        // Cap at game end (June Late = Turn 12)
+        if (settlementMonth > 6) {
+            return {
+                settlementMonth: 6,
+                settlementPeriod: 2  // Last turn of game
+            };
+        }
+
+        return { settlementMonth, settlementPeriod };
     },
 
     /**
