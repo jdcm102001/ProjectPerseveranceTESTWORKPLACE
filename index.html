@@ -49,6 +49,18 @@
             <div class="header-metric-value" id="headerMonth">JAN (1/12)</div>
         </div>
 
+        <!-- Period Timer -->
+        <div class="header-timer">
+            <div class="header-timer-label">Period Timer</div>
+            <div class="header-timer-display">
+                <span id="periodTimer" class="timer-value">10:00</span>
+                <button id="timerToggleBtn" class="timer-toggle-btn" onclick="window.GAME_STATE.toggleTimer()">⏸️ Pause</button>
+            </div>
+            <div class="timer-progress-container">
+                <div id="timerProgress" class="timer-progress-bar"></div>
+            </div>
+        </div>
+
         <!-- Expandable Key Metrics Section -->
         <div id="keyMetricsExpanded" style="display: none; margin-left: auto; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1); gap: 30px;">
             <div class="header-metric">

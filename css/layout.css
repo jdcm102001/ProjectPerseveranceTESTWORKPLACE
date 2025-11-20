@@ -137,6 +137,88 @@ body {
     transform: translateY(-1px);
 }
 
+/* ===== PERIOD TIMER ===== */
+.header-timer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.header-timer-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.header-timer-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.timer-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    min-width: 60px;
+    text-align: center;
+}
+
+.timer-value.timer-warning {
+    color: #fbbf24;
+    animation: pulse-warning 1s ease-in-out infinite;
+}
+
+.timer-value.timer-critical {
+    color: #ef4444;
+    animation: pulse-critical 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes pulse-critical {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.timer-toggle-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    padding: 4px 12px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.timer-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.timer-progress-container {
+    width: 120px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.timer-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+    width: 0%;
+    transition: width 1s linear;
+}
+
 /* ===== MAIN CONTAINER ===== */
 .container {
     display: flex;

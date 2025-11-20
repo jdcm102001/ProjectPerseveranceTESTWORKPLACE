@@ -1,4 +1,5 @@
 import { TimeManager } from './time-manager.js';
+import { TimerManager } from './timer-manager.js';
 
 // Futures contract specifications with complete trading parameters
 const FUTURES_SPECS = {
@@ -76,6 +77,17 @@ const GAME_STATE = {
         this.currentMonthName = TimeManager.getMonthName(this.currentMonth);
         this.periodName = TimeManager.getPeriodName(this.currentPeriod);
         this.currentTurn = TimeManager.getTurnNumber(this.currentMonth, this.currentPeriod);
+
+        // Initialize period timer
+        TimerManager.init({
+            onTick: (remainingSeconds) => {
+                this.updateTimerDisplay(remainingSeconds);
+            },
+            onExpire: () => {
+                this.handleTimerExpiration();
+            },
+            autoStart: true
+        });
 
         this.updateHeader();
     },
@@ -898,6 +910,10 @@ const GAME_STATE = {
         // Update UI
         this.updateHeader();
 
+        // Reset and restart timer for new period
+        TimerManager.reset();
+        TimerManager.start();
+
         // Dispatch period change event for widgets
         window.dispatchEvent(new CustomEvent('period-advanced', {
             detail: {
@@ -977,6 +993,99 @@ const GAME_STATE = {
                 grade: grade
             }
         }));
+
+        // Stop timer on game end
+        TimerManager.stop();
+    },
+
+    // ==========================================
+    // TIMER SYSTEM
+    // ==========================================
+
+    /**
+     * Update timer display in header
+     * @param {number} remainingSeconds - Remaining seconds in period
+     */
+    updateTimerDisplay(remainingSeconds) {
+        const timerElement = document.getElementById('periodTimer');
+        if (!timerElement) return;
+
+        const formattedTime = TimerManager.formatTime(remainingSeconds);
+        timerElement.textContent = formattedTime;
+
+        // Add visual warnings
+        if (remainingSeconds <= 30) {
+            timerElement.className = 'timer-critical';
+        } else if (remainingSeconds <= 60) {
+            timerElement.className = 'timer-warning';
+        } else {
+            timerElement.className = '';
+        }
+
+        // Update progress bar if exists
+        const progressBar = document.getElementById('timerProgress');
+        if (progressBar) {
+            const percentage = ((TimerManager.PERIOD_DURATION_SECONDS - remainingSeconds) / TimerManager.PERIOD_DURATION_SECONDS) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+    },
+
+    /**
+     * Handle timer expiration (auto-advance)
+     */
+    handleTimerExpiration() {
+        console.log('⏰ Timer expired - Auto-advancing period...');
+
+        // Show notification
+        const confirmAdvance = confirm(
+            `⏰ PERIOD TIME EXPIRED!\n\n` +
+            `Current: ${TimeManager.formatPeriod(this.currentMonth, this.currentPeriod)}\n\n` +
+            `The period timer has run out.\n` +
+            `Click OK to advance to the next period.`
+        );
+
+        if (confirmAdvance) {
+            this.advancePeriod();
+
+            // Reset and restart timer for new period
+            TimerManager.reset();
+            TimerManager.start();
+
+            // Refresh widgets
+            if (typeof window.MarketsWidget !== 'undefined') {
+                window.MarketsWidget.init();
+            }
+            if (typeof window.PositionsWidget !== 'undefined') {
+                window.PositionsWidget.render();
+            }
+            if (typeof window.FuturesWidget !== 'undefined') {
+                window.FuturesWidget.render();
+                window.FuturesWidget.renderGraph();
+            }
+        } else {
+            // User declined auto-advance, pause timer
+            TimerManager.pause();
+            console.log('⏸️ User declined auto-advance, timer paused');
+        }
+    },
+
+    /**
+     * Toggle timer pause/resume
+     */
+    toggleTimer() {
+        if (TimerManager.isRunning) {
+            TimerManager.pause();
+            console.log('⏸️ Timer paused by user');
+        } else if (TimerManager.isPaused) {
+            TimerManager.resume();
+            console.log('▶️ Timer resumed by user');
+        }
+
+        // Update button text
+        const timerButton = document.getElementById('timerToggleBtn');
+        if (timerButton) {
+            timerButton.textContent = TimerManager.isRunning ? '⏸️ Pause' : '▶️ Resume';
+        }
     }
 };
 
