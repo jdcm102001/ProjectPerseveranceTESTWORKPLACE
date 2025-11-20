@@ -44,6 +44,9 @@ const PositionsWidget = {
                     tonnage: pos.tonnage,
                     price: pos.costPerMT,
                     qp: 'M+1',
+                    qpMonth: pos.qpMonthName || '',  // NEW: Show which month determines price
+                    priceFinalized: pos.priceFinalized || false,  // NEW: Is price finalized?
+                    provisionalPrice: pos.provisionalPrice,  // NEW: Original provisional price
                     eta: periodsRemaining,
                     arrivalDisplay: arrivalDisplay,
                     arrival: pos.status === 'ARRIVED' ? 'Arrived' :
@@ -180,6 +183,29 @@ const PositionsWidget = {
             const totalInvoice = pos.tonnage * pos.price;
             const invoiceEquation = `${pos.tonnage} MT × $${Math.round(pos.price).toLocaleString('en-US')}/MT = $${Math.round(totalInvoice).toLocaleString('en-US')}`;
 
+            // M+1 Pricing Status Display
+            let qpDisplay = 'M+1';
+            if (pos.qpMonth && !pos.priceFinalized) {
+                // Price is still provisional
+                qpDisplay = `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="color: #fbbf24; font-weight: 600;">M+1</span>
+                    <span style="font-size: 9px; color: #fbbf24;">PROVISIONAL</span>
+                    <span style="font-size: 9px; color: #888;">${pos.qpMonth}</span>
+                </div>`;
+            } else if (pos.qpMonth && pos.priceFinalized) {
+                // Price has been finalized
+                const priceChange = pos.provisionalPrice ? pos.price - pos.provisionalPrice : 0;
+                const changeIndicator = priceChange !== 0 ?
+                    `<span style="font-size: 9px; color: ${priceChange >= 0 ? '#ef4444' : '#10b981'};">
+                        ${priceChange >= 0 ? '▲' : '▼'}$${Math.abs(priceChange).toFixed(0)}
+                    </span>` : '';
+                qpDisplay = `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="color: #10b981; font-weight: 600;">M+1</span>
+                    <span style="font-size: 9px; color: #10b981;">FINALIZED</span>
+                    ${changeIndicator}
+                </div>`;
+            }
+
             // Calculate projected P&L per ton if sold
             let projectedPL = '—';
             let plClass = '';
@@ -209,7 +235,7 @@ const PositionsWidget = {
                         ${pos.type === 'BUY' ? '-' : '+'}$${Math.round(totalInvoice).toLocaleString('en-US')}
                         <div style="font-size: 10px; color: #888; margin-top: 2px;">$${Math.round(pos.price).toLocaleString('en-US')}/MT</div>
                     </td>
-                    <td>${pos.qp}</td>
+                    <td>${qpDisplay}</td>
                     <td style="font-size: 11px; font-weight: 600;">
                         ${pos.arrivalDisplay || (pos.eta > 0 ? `${pos.eta} periods` : 'Delivered')}
                     </td>
