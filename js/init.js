@@ -16,6 +16,7 @@ import { MaritimeMapWidget } from './widgets/maritime-map-widget.js';
 
 // Import utility modules
 import { WorkflowHints } from './utils/workflow-hints.js';
+import { DataValidator } from './utils/data-validator.js';
 
 // Import drag & drop modules
 import {
@@ -66,6 +67,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('🎮 Starting game initialization...');
     await GAME_STATE.init();
     console.log('✅ GAME_STATE initialized, currentMonthData:', GAME_STATE.currentMonthData);
+
+    // Validate all month data (Phase 5: Data validation)
+    console.log('🔍 Validating month data...');
+    const validation = DataValidator.validateAllMonths();
+    if (!validation.valid) {
+        console.warn('⚠️ Month data validation found issues:', validation);
+    } else {
+        console.log('✅ All month data validated successfully');
+    }
 
     // Now safe to initialize widgets (they depend on month data)
     console.log('📊 Initializing widgets...');
